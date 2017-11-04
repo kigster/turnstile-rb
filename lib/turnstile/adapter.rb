@@ -7,9 +7,11 @@ module Turnstile
     include Timeout
 
     def initialize
-      self.redis = ::Redis.new(host: config.redis.host,
-                               port: config.redis.port,
-                               db:   config.redis.db)
+      self.redis = config.redis.url ?
+                     ::Redis.new(url: config.redis.url) :
+                     ::Redis.new(host: config.redis.host,
+                                 port: config.redis.port,
+                                 db:   config.redis.db)
     end
 
     def add(uid, platform, ip)
@@ -50,7 +52,6 @@ module Turnstile
     def config
       Turnstile.config
     end
-
 
     def compose_key(uid, platform = nil, ip = nil)
       "t:#{uid}:#{platform}:#{ip}"

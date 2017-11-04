@@ -5,6 +5,8 @@ module Turnstile
   class RedisConfig < ::Hashie::Dash
     include Hashie::Extensions::Dash::PropertyTranslation
 
+
+    property :url, required: false
     property :host, default: '127.0.0.1', required: true
     property :port, default: 6379, required: true, transform_with: ->(value) { value.to_i }
     property :db, default: 1, required: true, transform_with: ->(value) { value.to_i }

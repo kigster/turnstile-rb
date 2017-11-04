@@ -11,17 +11,9 @@ The gem uses (and depends on) a [Redis](http://redis.io/) instance in order to k
 
 ## Installation
 
-Add this line to your application's Gemfile (Note that another gem with a competing name is on RubyGems, so you **must** specify the path below):
+Add this line to your application's Gemfile:
 
-    gem 'turnstile-rb'
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install turnstile
+    $ gem install turnstile-rb
 
 ## Usage
 
@@ -42,20 +34,27 @@ Asynchronous tracking has a slight initial setup overhead, but has zero run-time
 
 With Real Time tracking you can use sampling to _estimate_ the number of online users. 
 
- * To do sampling, use the ```Turnstile::Tracker#track``` method 
- * To store and analyze 100% of your data use ```Turnstile::Adapter#add```. 
+ * To possibly use sampling, use the ```Turnstile::Tracker#track``` method.
+ * To store and analyze 100% of your data use ```Turnstile::Tracker#add```. 
 
 **Example:**
 
 ```ruby
-@turnstile = Turnstile::Adapter.new
+@tracker = Turnstile::Tracker.new
 
 user_id   = 12345
 platform  = 'desktop'
 ip        = '224.247.12.4'
 
 # register user
-@turnstile.add(user_id, platform, ip)
+@tracker.add(user_id, platform, ip)
+
+# or you can add a colon-delimited string token:
+@tracker.add_token("ios:172.2.5.3:39898098098")
+
+# or you with a custom delimiter:
+@tracker.add_token("ios|172.2.5.3|39898098098", '|')
+
 ```
 
 Without any further calls to ```track()``` method for this particular user/platform/ip combination, the user  is considered _online_ for 60 seconds.  Each subsequent call to ```track()``` resets the TTL.
@@ -145,25 +144,48 @@ this does not incur any additional cost for the application (as user tracking is
 
 Once the tracking information is sent, the data can be queried.  
 
-If you used sampling, then you should query using ```Turnstile::Observer``` class that provides 
-exprapolation of the results based on sample size configuration.
+If you used sampling, then you should query using ```Turnstile::Observer``` class that provides  exprapolation of the results based on sample size configuration.
+
 ```ruby
 # Return data for sampled users and the summary 
 Turnstile::Observer.new.stats
-# => { stats: { total: 3, platforms: 2 }, users: [ { uid: 1, platform: 'desktop', ip: '123.2.4.54' }, ... ]
+# => { stats: { 
+        total: 3, 
+        platforms: 2 }, 
+       users: [ { uid: 1, platform: 'desktop', ip: '123.2.4.54' }, ... ]
 ```
-If you did not use sampling, you can get some answers from the ```Turnstile::Adapter``` class:
+
+If you did not use sampling, you can get some answers from the`Turnstile::Adapter` class:
+
 ```ruby
 Turntstile::Adapter.new.fetch
 # => [ { uid: 213, :platform: 'desktop', '123.2.4.54' }, { uid: 215, ... } ]
 ```
+
 You can also request an aggregate results, suitable for sending to graphing systems or displaying on a dashboard:
+
 ```ruby
 Turntstile::Adapter.new.aggregate
 # => { 'desktop' => 234, 'ios' => 3214, ...,  'total' => 4566 }
 ```
 
-## Circonus NAD Integration
+### Summary Printing
+
+### JSON and CSV
+
+Use the following syntax:
+
+```bash
+# To see JSON summary:
+turnstile -s json
+
+# Or, for CSV
+turnstile -s csv
+```
+
+
+
+#### Circonus NAD
 
 We use Circonus to collect and graph data. You can use ```turnstile```
 to dump the current aggregate statistics from redis to standard output,
@@ -171,16 +193,17 @@ which is a tab-delimited format consumable by the nad daemon.
 
 (below output is formatted to show tabs as aligned for readability).
 
-```ruby
-> turnstile --summary
+```bash
+> turnstile -s
 
-turnstile.iphone	   n      383
+turnstile.iphone     n     383
 turnstile.ipad       n	    34
-turnstile.android    n      108
+turnstile.android    n     108
 turnstile.ipod_touch n      34
 turnstile.unknown    n      36
-turnstile.total      n      595
+turnstile.total      n     595
 ```
+
 
 ## TODO:
 

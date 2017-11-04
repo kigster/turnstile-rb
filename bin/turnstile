@@ -7,7 +7,7 @@ require 'optparse'
 require 'colored2'
 
 options = {}
-ARGV << '-?' if ARGV.empty?
+ARGV << '-h' if ARGV.empty?
 
 Colored2.disable! unless STDOUT.tty?
 
@@ -26,6 +26,8 @@ Redis server.
 
 When the query is invoked, data from all reporters is shown on STDOUT.
 EOF
+
+begin
 
 OptionParser.new do |opts|
   opts.banner = "Usage:\n".bold.magenta +
@@ -50,21 +52,32 @@ OptionParser.new do |opts|
     options[:delimiter] = v
   end
   opts.separator "\nRedis Server:".bold.magenta
-  opts.on('-h', '--redis-host HOST', 'Redis server host') do |host|
+  opts.on('-r', '--redis-url URL', 'Redis server URL') do |host|
+    Turnstile.config.redis_url = host
+  end
+  opts.on('--redis-host HOST', 'Redis server host') do |host|
     Turnstile.config.redis_host = host
   end
-  opts.on('-p', '--redis-port PORT', 'Redis server port') do |port|
+  opts.on('--redis-port PORT', 'Redis server port') do |port|
     Turnstile.config.redis_port = port
   end
-  opts.on('-n', '--redis-db DB', 'Redis server db') do |db|
+  opts.on('--redis-db DB', 'Redis server db') do |db|
     Turnstile.config.redis_db = db
   end
   opts.separator "\nMode of Operation:".bold.magenta
   opts.on('-d', '--daemonize', 'Daemonize to watch the logs') do |v|
     options[:daemonize] = true
   end
-  opts.on('-s', '--summary', 'Print current stats (using NAD format) and exit') do |v|
+  opts.on('-s', '--summary [FORMAT]',
+          'Print current stats and exit. Optional format can be',
+          'json (default), nad, yaml, or csv') do |v|
     options[:summary] = true
+    options[:summary_format] = (v || 'json').to_sym
+  end
+  opts.on('-a', '--add TOKEN',
+          'Registers an event from the token, such as ',
+          '"ios:123.4.4.4:32442". Use -d to customize delimiter.') do |v|
+    options[:add] = v
   end
   opts.separator "\nTiming Adjustments:".bold.magenta
   opts.on('-b', '--buffer-interval INTERVAL', 'Buffer for this many seconds') do |v|
@@ -77,15 +90,24 @@ OptionParser.new do |opts|
   opts.on('-v', '--verbose', 'Print status to stdout') do |v|
     options[:debug] = true
   end
-  opts.on_tail('-?', '--help', 'Show this message') do
+  opts.on_tail('-h', '--help', 'Show this message') do
     puts opts
-    exit
+    return
   end
 end.parse!
 
 if options[:summary]
-  STDOUT.puts Turnstile::Nad.new.data
+  Turnstile::Summary.print(options[:summary_format] || :json, options[:delimiter])
+elsif options[:add]
+  Turnstile::Tracker.new.add_token(options[:add], options[:delimiter] || ':')
+  Turnstile::Summary.print(options[:summary_format] || :json)
 else
   Turnstile::Collector::Runner.new(options).run
+end
+
+rescue OptionParser::MissingArgument => e
+  STDERR.puts e.message.bold.red
+rescue Exception => e
+  STDERR.puts e.message.bold.red
 end
 
