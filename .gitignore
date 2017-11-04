@@ -18,3 +18,4 @@ tmp
 .DS_Store
 coverate
 Gemfile.lock
+.ruby-version
