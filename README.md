@@ -1,7 +1,6 @@
-[![Build Status](https://travis-ci.org/kigster/turnstile.svg?branch=master)](https://travis-ci.org/kigster/turnstile)
-[![Test Coverage](https://codeclimate.com/github/wanelo/turnstile/badges/coverage.svg)](https://codeclimate.com/github/kigster/turnstile/coverage)
-[![Code Climate](https://codeclimate.com/github/wanelo/turnstile/badges/gpa.svg)](https://codeclimate.com/github/kigster/turnstile)
-[![Issue Count](https://codeclimate.com/github/wanelo/turnstile/badges/issue_count.svg)](https://codeclimate.com/github/kigster/turnstile)
+[![Build Status](https://travis-ci.org/kigster/turnstile-rb.svg?branch=master)](https://travis-ci.org/kigster/turnstile-rb)
+[![Maintainability](https://api.codeclimate.com/v1/badges/8031931b7924461f6a90/maintainability)](https://codeclimate.com/github/kigster/turnstile-rb/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/8031931b7924461f6a90/test_coverage)](https://codeclimate.com/github/kigster/turnstile-rb/test_coverage)
 
 # Turnstile
 
