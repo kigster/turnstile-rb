@@ -8,8 +8,11 @@ Gem::Specification.new do |spec|
   spec.version       = Turnstile::VERSION
   spec.authors       = ['Konstantin Gredeskoul']
   spec.email         = %w(kigster@gmail.com)
+
   spec.summary       = %q{Asynchronous and non-invasive concurrent user tracking with Redis, by scanning application logs across all servers.}
-  spec.description   = %q{Asynchronous and non-invasive concurrent user tracking with Redis, by scanning application logs across all servers.}
+
+  spec.description   = Turnstile::GEM_DESCRIPTION
+
   spec.homepage      = 'https://github.com/kigster/turnstile-rb'
   spec.license       = 'MIT'
 
@@ -30,7 +33,5 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'rspec-its'
-  spec.add_development_dependency 'guard-rspec'
-  spec.add_development_dependency 'rb-fsevent'
   spec.add_development_dependency 'simplecov'
 end

@@ -1,5 +1,6 @@
 require 'thread'
 require 'daemons/daemonize'
+require 'colored2'
 
 
 module Turnstile
@@ -26,7 +27,7 @@ module Turnstile
       def wait_for_file(file)
         sleep_period = 1
         while !File.exist?(file)
-          STDERR.puts "File #{file} does not exist, waiting for it to appear..."
+          STDERR.puts "File #{file.bold.yellow} does not exist, waiting for it to appear..."
           STDERR.puts 'Press Ctrl-C to abort.' if sleep_period == 1
 
           sleep sleep_period
