@@ -1,8 +1,14 @@
 require 'redis'
 require 'timeout'
 
+require_relative 'logger/helper'
+
 module Turnstile
   class Adapter
+    SEP = ':'
+
+    include Logger::Helper
+
     attr_accessor :redis
     include Timeout
 
@@ -20,12 +26,12 @@ module Turnstile
         redis.setex(key, config.activity_interval, 1)
       end
     rescue StandardError => e
-      Turnstile::Logger.log "exception while writing to redis: #{e.inspect}"
+      error "exception while writing to redis: #{e.inspect}"
     end
 
     def fetch
-      redis.keys('t:*').map do |key|
-        fields = key.split(':')
+      all_keys.map do |key|
+        fields = key.split(SEP)
         {
           uid:      fields[1],
           platform: fields[2],
@@ -34,16 +40,25 @@ module Turnstile
       end
     end
 
+    def wipe
+      keys = all_keys
+      log_around('wiping the database, total keys: ') do
+        redis.del(keys).to_s
+      end
+    end
+
+    def all_keys
+      redis.keys("#{prefix}*")
+    end
+
     def aggregate
-      redis.keys('t:*').inject({}) { |hash, key| increment_platform(hash, key) }.tap do |h|
+      all_keys.inject({}) { |hash, key| increment_platform(hash, key) }.tap do |h|
         h['total'] = h.values.inject(&:+) || 0
       end
     end
 
-    private
-
     def increment_platform(hash, key)
-      platform       = key.split(':')[2]
+      platform       = key.split(SEP)[2]
       hash[platform] ||= 0
       hash[platform] += 1
       hash
@@ -54,7 +69,13 @@ module Turnstile
     end
 
     def compose_key(uid, platform = nil, ip = nil)
-      "t:#{uid}:#{platform}:#{ip}"
+      "#{prefix}#{uid}#{SEP}#{platform}#{SEP}#{ip}"
+    end
+
+    private
+
+    def prefix
+      @prefix ||= "#{Turnstile::NS}|#{config.redis.namespace.gsub(/#{SEP}/, ':')}#{SEP}"
     end
 
   end

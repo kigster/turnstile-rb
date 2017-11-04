@@ -32,75 +32,109 @@ module Turnstile
         opts.on('-f', '--file FILE', 'File to monitor') do |file|
           options[:file] = file
         end
-        opts.on('-t', '--file-type TYPE',
-                'Either: json_formatted, pipe_delimited,',
-                'or comma_delimited (default).') do |type|
-          options[:filetype] = type
+
+        opts.on('-p', '--read-backwards [LINES]',
+                'Used with -f mode, and allows re-processing last N',
+                'lines in that file instead of tailing the end') do |lines|
+          options[:tail] = lines ? lines : -1
         end
-        opts.on('-D', '--delimiter CHAR',
+
+        opts.on('-F', '--format FORMAT',
+                'Either: json_formatted, pipe_delimited,',
+                'or comma_delimited (default).') do |format|
+          options[:filetype] = format
+        end
+
+        opts.on('-l', '--delimiter CHAR',
                 'Forces "delimited" file type, and uses ',
                 'the character in the argument as the delimiter') do |v|
           options[:delimiter] = v
         end
+
         opts.separator "\nRedis Server:".bold.magenta
-        opts.on('-r', '--redis-url URL', 'Redis server URL') do |host|
-          Turnstile.config.redis_url = host
-        end
-        opts.on('--redis-host HOST', 'Redis server host') do |host|
-          Turnstile.config.redis_host = host
-        end
-        opts.on('--redis-port PORT', 'Redis server port') do |port|
-          Turnstile.config.redis_port = port
-        end
-        opts.on('--redis-db DB', 'Redis server db') do |db|
-          Turnstile.config.redis_db = db
-        end
+
+        opts.on('-r', '--redis-url URL', 'Redis server URL') { |host| Turnstile.config.redis_url = host }
+        opts.on('--redis-host HOST', 'Redis server host') { |host| Turnstile.config.redis_host = host }
+        opts.on('--redis-port PORT', 'Redis server port') { |port| Turnstile.config.redis_port = port }
+        opts.on('--redis-db DB', 'Redis server db') { |db| Turnstile.config.redis_db = db }
+
         opts.separator "\nMode of Operation:".bold.magenta
-        opts.on('-d', '--daemonize', 'Daemonize to watch the logs') do |v|
-          options[:daemonize] = true
-        end
+        opts.on('-D', '--daemonize', 'Daemonize to watch the logs') { |v| options[:daemonize] = true }
+
         opts.on('-s', '--summary [FORMAT]',
                 'Print current stats and exit. Optional format can be',
                 'json (default), nad, yaml, or csv') do |v|
           options[:summary]        = true
           options[:summary_format] = (v || 'json').to_sym
         end
+
         opts.on('-a', '--add TOKEN',
                 'Registers an event from the token, such as ',
                 '"ios:123.4.4.4:32442". Use -d to customize delimiter.') do |v|
           options[:add] = v
         end
-        opts.separator "\nTiming Adjustments:".bold.magenta
-        opts.on('-b', '--buffer-interval INTERVAL', 'Buffer for this many seconds') do |v|
-          options[:buffer_interval] = v.to_i
+
+        opts.on('--flushdb', 'Wipes Redis database, and exit.') do |v|
+          options[:wipe] = true
         end
-        opts.on('-i', '--flush-interval INTERVAL', 'Flush then sleep for this many seconds') do |v|
+
+        opts.separator "\nMiscellaneous:".bold.magenta
+
+        opts.on('-i', '--idle-sleep SECONDS',
+                'When no work was detected, pause the ',
+                'threads for several seconds.') do |v|
           options[:flush_interval] = v.to_i
         end
-        opts.separator "\nMiscellaneous:".bold.magenta
-        opts.on('-v', '--verbose', 'Print status to stdout') do |v|
-          options[:debug] = true
-        end
+
+        opts.on('-v', '--verbose', 'Print status to stdout') { |v| options[:verbose] = true }
+        opts.on('-d', '--debug', 'Enable debug logging') { |v| options[:debug] = true }
         opts.on_tail('-h', '--help', 'Show this message') do
           puts opts
           return
         end
       end.parse!(argv)
+      self
+    rescue OptionParser::MissingArgument => e
+      stderr.puts 'Invalid Usage: ' + e.message.red
+    rescue Exception => e
+      stderr.puts e.message.bold.red
+    end
 
+
+    def run
       if options[:summary]
-        Turnstile::Summary.print(options[:summary_format] || :json, options[:delimiter])
+        Turnstile::Commands::Summary.print(options[:summary_format] || :json, options[:delimiter])
+
       elsif options[:add]
-        Turnstile::Tracker.new.add_token(options[:add], options[:delimiter] || ':')
-        Turnstile::Summary.print(options[:summary_format] || :json)
+        Turnstile::Tracker.new.track_token(options[:add], options[:delimiter] || ':')
+        Turnstile::Commands::Summary.print(options[:summary_format] || :json)
+
+      elsif options[:wipe]
+        count = Turnstile::Adapter.new.wipe
+        stdout.puts "Deleted a total of #{count} keys."
+
       else
         Turnstile::Collector::Runner.new(options).run
       end
-
-    rescue OptionParser::MissingArgument => e
-      STDERR.puts e.message.bold.red
     rescue Exception => e
-      STDERR.puts e.message.bold.red
+      handle_error('Parser#run error:', e)
     end
+
+    def handle_error(title, e)
+      if options[:debug]
+        trace = e.backtrace.reverse
+        last  = trace.pop
+        stderr.puts trace.join("\n")
+        stderr.puts last.bold.red
+      end
+      stderr.puts
+
+      stderr.puts title.bold.yellow
+      stderr.puts "\t" + e.message.red
+      stderr.puts
+    end
+
+
   end
 end
 

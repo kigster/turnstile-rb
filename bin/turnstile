@@ -5,7 +5,5 @@ require 'rubygems'
 require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
 require 'turnstile'
 
-require 'turnstile/runner'
-
 Turnstile::Runner.new(ARGV).execute!
 

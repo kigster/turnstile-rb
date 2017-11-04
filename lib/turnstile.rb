@@ -5,8 +5,10 @@ require 'turnstile/adapter'
 require 'turnstile/tracker'
 require 'turnstile/observer'
 require 'turnstile/logger'
+require 'turnstile/logger/helper'
 require 'turnstile/collector'
-require 'turnstile/summary'
+require 'turnstile/runner'
+require 'turnstile/commands/summary'
 
 module Turnstile
   def self.configure(&block)

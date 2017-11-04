@@ -18,4 +18,5 @@ module Turnstile
   that's generating log files.
   EOF
 
+  NS = "x-turnstile|#{VERSION.gsub(/\./,'')}".freeze
 end

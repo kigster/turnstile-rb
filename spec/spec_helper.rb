@@ -9,16 +9,34 @@ ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../../Gemfile', __FILE__)
 
 require 'rubygems'
 require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
-require 'simplecov'
+require 'fileutils'
+require 'rspec/its'
 
+require 'simplecov'
 SimpleCov.start
 
 require 'turnstile'
-require 'rspec/its'
+
+require_relative 'support/logging'
 
 RSpec.configure do |config|
   config.order = 'random'
+
+  config.before :all  do
+    Turnstile::RSpec::Logging.configure
+  end
+
   config.before :each do
     Turnstile::Adapter.new.redis.flushdb
+  end
+
+  config.around :each, logging: true do |ex|
+    Turnstile::Logger.enable
+    Turnstile::Logger.enable
+
+    Turnstile::Logger.info_elapsed('measuring example: ') do
+      ex.run
+    end
+    Turnstile::Logger.disable
   end
 end

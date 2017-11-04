@@ -1,5 +1,6 @@
 require 'file-tail'
 require 'turnstile/collector/formats'
+require 'turnstile/collector/actor'
 
 module Turnstile
   module Collector
@@ -7,75 +8,96 @@ module Turnstile
       include ::File::Tail
     end
 
-    class LogReader
-      class << self
-        include Formats
+    class LogReader < Actor
+      attr_accessor :file, :filename, :matcher
 
-        def pipe_delimited(file, queue)
-          new(file, queue, delimited_matcher)
-        end
+      def initialize(log_file:, matcher:, **opts)
+        super(**opts)
+        self.matcher  = matcher
+        self.filename = log_file
 
-        def comma_delimited(file, queue)
-          new(file, queue, delimited_matcher(','))
-        end
-
-        def colon_delimited(file, queue)
-          new(file, queue, delimited_matcher(':'))
-        end
-
-        def delimited(file, queue, delimiter)
-          new(file, queue, delimited_matcher(delimiter))
-        end
-
-        def json_formatted(file, queue)
-          new(file, queue, json_matcher)
-        end
-
-        alias default pipe_delimited
+        open_and_watch(opts[:tail] ? opts[:tail].to_i : 0)
       end
 
-      attr_accessor :file, :queue, :matcher
-
-      def initialize(log_file, queue, matcher)
-        self.matcher = matcher
-        self.queue   = queue
-
-        self.file = LogFile.new(log_file)
-
-        file.interval = 1
-        file.backward(0)
+      def reopen(a_file = nil)
+        close
+        self.filename = a_file if a_file
+        open_and_watch(0)
       end
 
-      def run
-        Thread.new do
-          Thread.current[:name] = 'log-reader'
-          Turnstile::Logger.log "starting to tail file #{file.path}...."
-          process!
+      def execute
+        self.read do |token|
+          self.queue << token if token
         end
+      rescue IOError
+        open_and_watch if File.exist?(filename)
+      ensure
+        close
       end
 
       def read(&_block)
         file.tail do |line|
           token = matcher.token_from(line)
           yield(token) if block_given? && token
-        end
-      end
-
-      def process!
-        self.read do |token|
-          queue << token if token
+          break if stopping?
         end
       end
 
       def close
-        (file.close if file) rescue nil
+        (file.close rescue nil) if file
       end
 
       private
 
-      def extract(line)
+      def open_and_watch(tail_lines = 0)
+        self.file = LogFile.new(filename)
+
+        file.interval = 1
+        file.backward(0) if tail_lines == 0
+        file.backward(tail_lines) if tail_lines > 0
+        file.forward(0) if tail_lines == -1
+      end
+
+      class << self
+        include Formats
+
+        def pipe_delimited(file, queue, **opts)
+          new(log_file: file,
+              queue:    queue,
+              matcher:  delimited_matcher,
+              **opts)
+        end
+
+        def comma_delimited(file, queue, **opts)
+          new(log_file: file,
+              queue:    queue,
+              matcher:  delimited_matcher(','),
+              **opts)
+        end
+
+        def colon_delimited(file, queue, **opts)
+          new(log_file: file,
+              queue:    queue,
+              matcher:  delimited_matcher(':'),
+              **opts)
+        end
+
+        def delimited(file, queue, delimiter, **opts)
+          new(log_file: file,
+              queue:    queue,
+              matcher:  delimited_matcher(delimiter),
+              **opts)
+        end
+
+        def json_formatted(file, queue, **opts)
+          new(log_file: file,
+              queue:    queue,
+              matcher:  json_matcher,
+              **opts)
+        end
+
+        alias default pipe_delimited
       end
     end
-
   end
 end

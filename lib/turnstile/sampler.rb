@@ -11,7 +11,9 @@ module Turnstile
       ((uid.hash + Time.now.day) % 100) < sampling_rate
     end
 
-    private
+    def sampling?
+      sampling_rate && sampling_rate <= 100 && sampling_rate >= 0
+    end
 
     def sampling_rate
       Turnstile.config.sampling_rate

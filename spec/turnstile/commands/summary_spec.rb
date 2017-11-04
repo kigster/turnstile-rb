@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Turnstile::Summary do
+describe Turnstile::Commands::Summary do
   subject { described_class.new }
 
   let(:aggregate) {

@@ -60,7 +60,7 @@ describe Turnstile::Collector::LogReader do
 
     context '#process!' do
       it 'should read values into the queue' do
-        run_reader(read_timeout) { reader.process! }
+        run_reader(read_timeout) { reader.execute }
         expect(queue.size).to eql(31)
       end
     end
@@ -106,7 +106,7 @@ describe Turnstile::Collector::LogReader do
 
     context '#process!' do
       it 'should read values into the queue' do
-        run_reader(read_timeout) { reader.process! }
+        run_reader(read_timeout) { reader.execute }
         expect(queue.size).to eql(expected_total)
       end
     end

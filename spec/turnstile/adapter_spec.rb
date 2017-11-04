@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe Turnstile::Adapter do
+describe Turnstile::Adapter, logging: true do
 
-  subject { Turnstile::Adapter.new }
+  subject(:adapter) { Turnstile::Adapter.new }
 
   let(:redis) { subject.send(:redis) }
 
@@ -18,7 +18,7 @@ describe Turnstile::Adapter do
 
   describe '#add' do
     it 'calls redis with the correct params' do
-      key = "t:#{uid}:#{platform}:#{ip}"
+      key = adapter.compose_key(uid, platform, ip)
       expect(redis).to receive(:setex).once.with(key, Turnstile.config.activity_interval, 1)
       subject.add(uid, platform, ip)
     end
@@ -66,6 +66,13 @@ describe Turnstile::Adapter do
     it 'should calculated proper aggregation' do
       expect(subject.aggregate).to eql expected_hash
     end
-  end
 
+    its(:aggregate) { should_not include({ 'total' => 0 }) }
+    its(:prefix) { should match /^x-turnstile\|\d+/ }
+
+    describe '#wipe' do
+      before { subject.wipe }
+      its(:aggregate) { should include({ 'total' => 0 }) }
+    end
+  end
 end

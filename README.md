@@ -5,17 +5,80 @@
 
 # Turnstile
 
-The goal of this gem is to provide near real time tracking and reporting on the number of users currently online and accessing given application.  It requires that the reporting layer is able to uniquely identify each user and provide a unique identifier.  It may also optionally assign another dimension to the users accessing, such as, for example, _platform_ -- which in our case denotes how the user is accessing our application: from desktop browser, iOS app, Android app, mobile web, etc.  But any other partitioning schemee can be used, or none at all.
+The goal of this gem is to provide near real time tracking and reporting on the number of users currently online and accessing given application.  It requires that the reporting layer is able to uniquely identify each user. You may also add one another dimension to the tracking, such as i.e. a _platform_ — a coded device or device type the user is using. 
 
-The gem uses (and depends on) a [Redis](http://redis.io/) instance in order to keep track of _unique_ users, and can operate in **online* mode (tracking users from a Rack Middleware) or **offline**, by taling a file log.
+For example, you might support platforms: `ios`, `android`, `macos`, `windows`, etc.
+
+The gem uses [Redis](http://redis.io/) in order to keep track of the data, and can operate in either the **online* mode** (tracking users from a Rack Middleware) or **offline mode**, by taling an application file log file and searching for a particular pattern.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
     $ gem install turnstile-rb
+    $ turnstile --help
 
 ## Usage
+
+The gem provides rich command line interface shown below:
+
+```bash
+Usage:
+     turnstile -f <file> [ --daemon ]  [ options ]
+     turnstile -s [ json | csv | nad ] [ options ]
+     turnstile -a 'platform:ip:user'   [ options ]
+
+Description:
+     Turnstile can run as a daemon, in which mode it monitors a given log file.
+     Alternatively, turnstile binary can be used to print current stats, and even
+     add new data into the registry.
+
+     If you are using Turnstile to tail log files, make sure you run on each app sever
+     that's generating log files.
+
+Log File Specification:
+    -f, --file FILE                  File to monitor
+    
+    -t, --file-type TYPE             Either: json_formatted, pipe_delimited,
+                                     or comma_delimited (default).
+                                     
+    -D, --delimiter CHAR             Forces "delimited" file type, and uses
+                                     the character in the argument as the 
+                                     delimiter
+
+Redis Server:
+    -r, --redis-url URL              Redis server URL
+    
+        --redis-host HOST            Redis server host
+        --redis-port PORT            Redis server port
+        --redis-db DB                Redis server db
+
+Mode of Operation:
+    -d, --daemonize                  Daemonize to watch the logs
+    -s, --summary [FORMAT]           Print current stats and exit. 
+                                     Optional format can be one of 
+                                     json (default), nad, yaml, or csv
+                                     
+    -a, --add TOKEN                  Registers an event from the token, 
+                                     such as "ios:123.4.4.4:32442". 
+                                     Use -d to use custom delimiter.
+
+Timing Adjustments:
+    -b, --buffer-interval INTERVAL   Buffer for this many seconds
+    -i, --flush-interval INTERVAL    Flush then sleep for this many seconds
+
+Miscellaneous:
+    -v, --verbose                    Print status to stdout
+    -h, --help                       Show this message
+```
+
+Effectively, you can run `turnstile` CLI tool in order to:
+
+ * start a daemon to tail a log file
+ * to print results
+ * to reset all data
+ * to add new data
+
 
 ### Tracking 
 

@@ -24,7 +24,7 @@ module Turnstile
         $stdin  = stdin
         $stdout = stdout
 
-        Turnstile::Parser.new(argv, self).parse
+        Turnstile::Parser.new(argv, self).parse.run
 
         # Thor::Base#start does not have a return value, assume success if no exception is raised.
         0
