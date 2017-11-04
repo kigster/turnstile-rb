@@ -19,3 +19,4 @@ tmp
 coverate
 Gemfile.lock
 .ruby-version
+.rake_tasks*
