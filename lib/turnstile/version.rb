@@ -1,5 +1,5 @@
 module Turnstile
-  VERSION     = '2.0.1'
+  VERSION     = '2.1.0'
 
   GEM_DESCRIPTION = <<-EOF
   Turnstile is a Redis-based library that can accurately track total number of concurrent
