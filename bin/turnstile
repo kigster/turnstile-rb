@@ -1,0 +1,91 @@
+#!/usr/bin/env ruby
+ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../../Gemfile', __FILE__)
+require 'rubygems'
+require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
+require 'turnstile'
+require 'optparse'
+require 'colored2'
+
+options = {}
+ARGV << '-?' if ARGV.empty?
+
+Colored2.disable! unless STDOUT.tty?
+
+DESCRIPTION = <<-EOF
+Turnstile consists of two components:
+
+   1. A daemon process started with #{'turnstile -f <log-file> [ --daemon ]'.bold.green}
+      This process should run on every server that generates a log 
+      file, and they should all connect to the same Redis server. 
+
+   2. Query command, ran as #{'turnstile --summary'.bold.green}
+
+In the first form, turnstile can tail a given log file, 
+parsing and tallying and periodically syncing to the master 
+Redis server.
+
+When the query is invoked, data from all reporters is shown on STDOUT.
+EOF
+
+OptionParser.new do |opts|
+  opts.banner = "Usage:\n".bold.magenta +
+    "    turnstile -f <file> [ --daemon ] [options]\n".green +
+    "    turnstile --summary [options]\n".green
+
+  opts.separator "Description:".bold.magenta
+  opts.separator '    ' + DESCRIPTION.gsub(/\n/, "\n   ")
+
+  opts.separator "Log File Specification:".bold.magenta
+  opts.on('-f', '--file FILE', 'File to monitor') do |file|
+    options[:file] = file
+  end
+  opts.on('-t', '--file-type TYPE',
+          'Either: json_formatted, pipe_delimited,',
+          'or comma_delimited (default).') do |type|
+    options[:filetype] = type
+  end
+  opts.on('-D', '--delimiter CHAR',
+          'Forces "delimited" file type, and uses ',
+          'the character in the argument as the delimiter') do |v|
+    options[:delimiter] = v
+  end
+  opts.separator "\nRedis Server:".bold.magenta
+  opts.on('-h', '--redis-host HOST', 'Redis server host') do |host|
+    Turnstile.config.redis_host = host
+  end
+  opts.on('-p', '--redis-port PORT', 'Redis server port') do |port|
+    Turnstile.config.redis_port = port
+  end
+  opts.on('-n', '--redis-db DB', 'Redis server db') do |db|
+    Turnstile.config.redis_db = db
+  end
+  opts.separator "\nMode of Operation:".bold.magenta
+  opts.on('-d', '--daemonize', 'Daemonize to watch the logs') do |v|
+    options[:daemonize] = true
+  end
+  opts.on('-s', '--summary', 'Print current stats (using NAD format) and exit') do |v|
+    options[:summary] = true
+  end
+  opts.separator "\nTiming Adjustments:".bold.magenta
+  opts.on('-b', '--buffer-interval INTERVAL', 'Buffer for this many seconds') do |v|
+    options[:buffer_interval] = v.to_i
+  end
+  opts.on('-i', '--flush-interval INTERVAL', 'Flush then sleep for this many seconds') do |v|
+    options[:flush_interval] = v.to_i
+  end
+  opts.separator "\nMiscellaneous:".bold.magenta
+  opts.on('-v', '--verbose', 'Print status to stdout') do |v|
+    options[:debug] = true
+  end
+  opts.on_tail('-?', '--help', 'Show this message') do
+    puts opts
+    exit
+  end
+end.parse!
+
+if options[:summary]
+  STDOUT.puts Turnstile::Nad.new.data
+else
+  Turnstile::Collector::Runner.new(options).run
+end
+
