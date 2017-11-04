@@ -14,7 +14,7 @@ module Turnstile
       end
 
       def matches?(line)
-        regexp && regexp.match?(line)
+        regexp && regexp.match(line)
       end
     end
   end
