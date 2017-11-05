@@ -4,6 +4,7 @@ describe Turnstile do
 
   let(:tracker) { Turnstile::Tracker.new }
   let(:observer) { Turnstile::Observer.new }
+  let(:adapter) { tracker.adapter }
 
   let(:uid_1) { 1238438 }
   let(:uid_2) { 1238439 }
@@ -21,6 +22,8 @@ describe Turnstile do
   let(:other_ip) { '4.3.2.1' }
 
   describe 'general tests' do
+    before { adapter.flushdb }
+
     let(:expected_stats) do
       {
         stats: {

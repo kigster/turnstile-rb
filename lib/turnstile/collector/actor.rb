@@ -47,13 +47,15 @@ module Turnstile
       def start
         self.thread = create_thread(self, sleep_when_idle) do |actor, sleep_period|
           loop do
-            work = actor.execute
+            items_remaining = actor.execute
             break if actor.stopping?
-            sleep(sleep_period) unless work
+            sleep(sleep_period) unless items_remaining && items_remaining > 0
           end
         end
       end
 
+      # Return nil when there is nothing else to do
+      # Return ideally a number representing number of remaining items.
       def execute
         raise ArgumentError, 'Abstract Method'
       end

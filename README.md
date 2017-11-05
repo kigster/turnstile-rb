@@ -20,12 +20,12 @@ Add this line to your application's Gemfile:
 
 ## Usage
 
-The gem provides rich command line interface shown below:
+The gem provides command line interface shown below:
 
 ```bash
 Usage:
-     turnstile -f <file> [ --daemon ]  [ options ]
-     turnstile -s [ json | csv | nad ] [ options ]
+     turnstile watch -f <file> [ --daemon ]  [ options ]
+     turnstile show -s 
      turnstile -a 'platform:ip:user'   [ options ]
 
 Description:

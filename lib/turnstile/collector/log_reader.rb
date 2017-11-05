@@ -1,6 +1,6 @@
 require 'file-tail'
-require 'turnstile/collector/formats'
-require 'turnstile/collector/actor'
+require_relative 'formats'
+require_relative 'actor'
 
 module Turnstile
   module Collector
