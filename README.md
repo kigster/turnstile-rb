@@ -20,7 +20,7 @@ Add this line to your application's Gemfile:
 
 ## Usage
 
-The gem provides rich command line interface shown below:
+The gem provides command line interface shown below:
 
 ```bash
 Usage:
@@ -29,56 +29,56 @@ Usage:
      turnstile -a 'platform:ip:user'   [ options ]
 
 Description:
-     Turnstile can run as a daemon, in which mode it monitors a given log file.
-     Alternatively, turnstile binary can be used to print current stats, and even
-     add new data into the registry.
+     Turnstile can be run as a daemon, in which case it watches a given log
+     file. Or, you can run turnstile executable to print the current aggregated
+     stats in several supported formats.
 
-     If you are using Turnstile to tail log files, make sure you run on each app sever
-     that's generating log files.
+     When Turnstile is used to tail the log files, please make sure that you
+     start turnstile daemon on each app sever that's generating log file.
 
 Log File Specification:
     -f, --file FILE                  File to monitor
-    
-    -t, --file-type TYPE             Either: json_formatted, pipe_delimited,
-                                     or comma_delimited (default).
-                                     
-    -D, --delimiter CHAR             Forces "delimited" file type, and uses
-                                     the character in the argument as the 
-                                     delimiter
+    -p, --read-backwards [LINES]     Used with -f mode, and allows re-processing last N
+                                     lines in that file instead of tailing the end
+
+    -F, --format FORMAT              Specifies the format of the log file.
+                                     Supported Choices: json_formatted, pipe_delimited,
+                                     comma_delimited, colon_delimited, or just delimited
+                                     using the delimiter set with -l
+
+    -l, --delimiter CHAR             Forces "delimited" file type, and uses
+                                     the character in the argument as the delimiter
 
 Redis Server:
     -r, --redis-url URL              Redis server URL
-    
         --redis-host HOST            Redis server host
         --redis-port PORT            Redis server port
         --redis-db DB                Redis server db
 
 Mode of Operation:
     -d, --daemonize                  Daemonize to watch the logs
-    -s, --summary [FORMAT]           Print current stats and exit. 
-                                     Optional format can be one of 
+    -s, --show [FORMAT]              Print current stats and exit. Optional format can be
                                      json (default), nad, yaml, or csv
-                                     
-    -a, --add TOKEN                  Registers an event from the token, 
-                                     such as "ios:123.4.4.4:32442". 
-                                     Use -d to use custom delimiter.
-
-Timing Adjustments:
-    -b, --buffer-interval INTERVAL   Buffer for this many seconds
-    -i, --flush-interval INTERVAL    Flush then sleep for this many seconds
+    -a, --add TOKEN                  Registers an event from the token, such as
+                                     "ios:123.4.4.4:32442". Use -l to customize delimiter.
+        --flushdb                    Wipes Redis database, and exit.
+        --print-keys                 Prints all Turnstile keys in Redis
 
 Miscellaneous:
+    -i, --idle-sleep SECONDS         When no work was detected, pause the
+                                     threads for several seconds.
     -v, --verbose                    Print status to stdout
-    -h, --help                       Show this message
+    -t, --trace                      Enable trace mode
+    -h, --help                       Show this message`
 ```
 
 Effectively, you can run `turnstile` CLI tool in order to:
 
  * start a daemon to tail a log file
  * to print results
+ * to print all redis keys
  * to reset all data
  * to add new data
-
 
 ### Tracking 
 

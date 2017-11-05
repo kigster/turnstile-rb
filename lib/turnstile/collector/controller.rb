@@ -1,4 +1,6 @@
+require 'csv'
 require 'thread'
+require 'hashie/extensions/symbolize_keys'
 require 'daemons/daemonize'
 require 'colored2'
 require 'attr_memoized'
@@ -8,32 +10,30 @@ require_relative 'actor'
 
 module Turnstile
   module Collector
-    class Runner
+    class Controller
       include AttrMemoized
 
       attr_memoized :tracker, -> { Turnstile::Tracker.new }
       attr_memoized :queue, -> { Queue.new }
-      attr_memoized :file, -> { config.file }
+      attr_memoized :file, -> { options.file }
 
-
-      attr_accessor :config
+      attr_accessor :options, :actors
 
       def initialize(*args)
-        self.config = args.last.is_a?(Hash) ? args.pop : {}
+        self.options = args.last.is_a?(Hash) ? args.pop : {}
 
-        config.verbose ? Turnstile::Logger.enable : Turnstile::Logger.disable
+        options.verbose ? Turnstile::Logger.enable : Turnstile::Logger.disable
 
         wait_for_file(file)
 
-        self.reader
-        self.flusher
+        self.actors = [ self.reader, self.flusher ]
 
-        Daemonize.daemonize if config[:daemonize]
-        STDOUT.sync = true if config[:verbose]
+        Daemonize.daemonize if options[:daemonize]
+        STDOUT.sync = true if options[:verbose]
       end
 
-      def run
-        threads = [reader.start, flusher.start]
+      def start
+        threads = actors.map(&:start)
         threads.map(&:join)
       end
 
@@ -42,41 +42,39 @@ module Turnstile
       end
 
       def reader
-        return @reader if @reader
-
-        args, opts = reader_arguments
-        matcher    = opts.delete(:matcher)
-
+        opts = reader_arguments
+        matcher = opts.delete(:matcher).to_sym
         @reader ||= if log_reader_class.respond_to?(matcher)
-                      log_reader_class.send(matcher, *args, **opts)
+                      log_reader_class.send(matcher, file, queue, **opts)
                     else
                       raise ArgumentError, "Invalid matcher #{matcher}, args #{reader_args}"
                     end
       end
 
-      def actor_arguments
-        [queue, tracker]
-      end
-
-      def actor_argument_hash
-        {}
-      end
-
-      def flusher_arguments
-        actor_argument_hash.merge(sleep_when_idle: config[:flush_interval] || 10)
-      end
-
-      def reader_arguments
-        reader_args        = actor_arguments
-        reader_args_hash   = actor_argument_hash.merge(sleep_when_idle: config[:flush_interval] || 10)
-        matcher, delimiter = select_matcher
-
-        reader_args.push(delimiter) if delimiter
-        reader_args_hash.merge!(matcher: matcher)
-        return reader_args, reader_args_hash
+      def symbolize(opts)
+        Hashie::Extensions::SymbolizeKeys.symbolize_keys(opts.to_h)
       end
 
       private
+
+
+      def flusher_arguments
+        symbolize(actor_argument_hash.merge(sleep_when_idle: options[:flush_interval] || 10))
+      end
+
+      def reader_arguments
+        reader_args_hash   = actor_argument_hash.merge(sleep_when_idle: options[:flush_interval] || 10)
+        matcher, delimiter = select_matcher
+
+        reader_args_hash.merge!(delimiter: delimiter) if delimiter
+        reader_args_hash.merge!(matcher: matcher) if matcher
+
+        symbolize(reader_args_hash)
+      end
+
+      def actor_argument_hash
+        options.merge(queue: queue, tracker: tracker)
+      end
 
       def wait_for_file(file)
         sleep_period = 1
@@ -98,11 +96,11 @@ module Turnstile
         matcher   = :default
         delimiter = nil
 
-        if config[:delimiter]
+        if options[:delimiter]
           matcher   = :delimited
-          delimiter = config[:delimiter]
-        elsif config[:filetype]
-          matcher = config[:filetype].to_sym
+          delimiter = options[:delimiter]
+        elsif options[:filetype]
+          matcher = options[:filetype].to_sym
         end
         return matcher, delimiter
       end

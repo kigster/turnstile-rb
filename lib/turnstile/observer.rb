@@ -1,5 +1,8 @@
 require 'hashie/mash'
 require 'hashie/extensions/mash/symbolize_keys'
+require_relative 'redis/adapter'
+
+require_relative 'dependencies'
 
 module Turnstile
   class Stats < ::Hashie::Mash
@@ -7,6 +10,8 @@ module Turnstile
   end
 
   class Observer
+    include Dependencies
+
     def stats
       data      = adapter.fetch
       platforms = Hash[data.group_by { |d| d[:platform] }.map { |k, v| [k, sampler.extrapolate(v.count)] }]
@@ -20,14 +25,5 @@ module Turnstile
                 })
     end
 
-    private
-
-    def adapter
-      @adapter ||= Adapter.new
-    end
-
-    def sampler
-      @sampler ||= Sampler.new
-    end
   end
 end

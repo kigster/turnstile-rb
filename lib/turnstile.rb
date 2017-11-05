@@ -1,21 +1,40 @@
 require 'turnstile/version'
 require 'turnstile/configuration'
+require 'turnstile/commands'
+require 'turnstile/logger'
+require 'turnstile/dependencies'
 require 'turnstile/sampler'
-require 'turnstile/adapter'
 require 'turnstile/tracker'
 require 'turnstile/observer'
-require 'turnstile/logger'
-require 'turnstile/logger/helper'
+require 'turnstile/redis/adapter'
 require 'turnstile/collector'
-require 'turnstile/runner'
-require 'turnstile/commands/summary'
+
+require 'turnstile/cli/runner'
 
 module Turnstile
-  def self.configure(&block)
-    @configuration = Turnstile::Configuration.new.configure(&block)
+  class CommandNotFoundError < StandardError; end
+
+  class << self
+    attr_accessor :debug
+
+    def debug?
+      self.debug
+    end
+
+    def configure(&block)
+      @configuration = create_config.configure(&block)
+    end
+
+    def config
+      @configuration ||= create_config
+    end
+
+    private
+
+    def create_config
+      ::Turnstile::Configuration.new
+    end
+
   end
 
-  def self.config
-    @configuration ||= Turnstile::Configuration.new
-  end
 end

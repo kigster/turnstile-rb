@@ -1,8 +1,9 @@
-require_relative 'adapter'
-require_relative 'adapter'
+require_relative 'dependencies'
 
 module Turnstile
   class Tracker
+
+    include Dependencies
 
     def track_and_sample(uid, platform = 'unknown', ip = nil)
       track_all(uid, platform, ip) if should_track?(uid)
@@ -16,21 +17,12 @@ module Turnstile
       adapter.add(uid, platform, ip)
     end
 
-    def track_token(token, delimiter = ':')
+    def track_token(token, delimiter = nil)
+      delimiter ||= ':'
       platform, ip, uid = token.split(delimiter)
       adapter.add(uid, platform, ip) if uid
     end
 
     alias track track_and_sample
-
-    private
-
-    def adapter
-      @adapter ||= Adapter.new
-    end
-
-    def sampler
-      @sampler ||= Sampler.new
-    end
   end
 end

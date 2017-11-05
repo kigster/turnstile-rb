@@ -11,6 +11,7 @@ module Turnstile
     property :db, default: 1, required: true, transform_with: ->(value) { value.to_i }
     property :timeout, default: 0.05, required: true, transform_with: ->(value) { value.to_f }
     property :namespace, default: '', required: false
+    property :pool_size, default: 5, required: true
 
     def configure
       yield self if block_given?

@@ -1,5 +1,10 @@
+require_relative 'dependencies'
+
 module Turnstile
   class Sampler
+
+    include Dependencies
+
     def extrapolate(n)
       (n * 100.0 / sampling_rate).to_i
     end
@@ -16,7 +21,7 @@ module Turnstile
     end
 
     def sampling_rate
-      Turnstile.config.sampling_rate
+      config.sampling_rate
     end
   end
 end

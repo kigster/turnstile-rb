@@ -27,16 +27,13 @@ RSpec.configure do |config|
   end
 
   config.before :each do
-    Turnstile::Adapter.new.redis.flushdb
+    Turnstile::Redis::Adapter.instance
   end
 
   config.around :each, logging: true do |ex|
+    logging_enabled = Turnstile::Logger.enabled
     Turnstile::Logger.enable
-    Turnstile::Logger.enable
-
-    Turnstile::Logger.info_elapsed('measuring example: ') do
-      ex.run
-    end
-    Turnstile::Logger.disable
+    Turnstile::Logger.info_elapsed('measuring example: ') { ex.run }
+    Turnstile::Logger.enabled = logging_enabled
   end
 end
