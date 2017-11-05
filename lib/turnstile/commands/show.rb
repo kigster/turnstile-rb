@@ -38,7 +38,7 @@ module Turnstile
         build_string(data) do |key, value, *|
           string = [key, value].to_csv
           string.gsub!(/,/, delimiter) if delimiter
-          string
+          string.strip
         end
       end
 

@@ -2,8 +2,9 @@ require 'turnstile/dependencies'
 
 module Turnstile
   module Commands
+
     class Base
-      include Dependencies
+      include ::Turnstile::Dependencies
 
       attr_accessor :options, :config
 

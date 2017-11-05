@@ -17,7 +17,8 @@ module Turnstile
       adapter.add(uid, platform, ip)
     end
 
-    def track_token(token, delimiter = ':')
+    def track_token(token, delimiter = nil)
+      delimiter ||= ':'
       platform, ip, uid = token.split(delimiter)
       adapter.add(uid, platform, ip) if uid
     end

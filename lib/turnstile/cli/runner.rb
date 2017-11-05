@@ -27,7 +27,7 @@ module Turnstile
           $stdout = stdout
 
           options = Parser.new(argv, self).parse
-          Launcher.new(options).launch
+          Launcher.new(options).launch if options
 
           # Thor::Base#start does not have a return value, assume success if no exception is raised.
           0

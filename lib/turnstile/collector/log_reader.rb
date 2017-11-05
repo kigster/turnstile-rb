@@ -15,7 +15,6 @@ module Turnstile
         super(**opts)
         self.matcher  = matcher
         self.filename = log_file
-
         open_and_watch(opts[:tail] ? opts[:tail].to_i : 0)
       end
 
@@ -82,10 +81,10 @@ module Turnstile
               **opts)
         end
 
-        def delimited(file, queue, delimiter, **opts)
+        def delimited(file, queue, **opts)
           new(log_file: file,
               queue:    queue,
-              matcher:  delimited_matcher(delimiter),
+              matcher:  delimited_matcher(opts[:delimiter]),
               **opts)
         end
 

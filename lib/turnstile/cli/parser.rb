@@ -40,16 +40,18 @@ module Turnstile
             opts.on('-p', '--read-backwards [LINES]',
                     'Used with -f mode, and allows re-processing last N',
                     'lines in that file instead of tailing the end') do |lines|
-              options[:tail] = lines ? lines : -1
+              options[:tail] = lines ? lines.to_i : -1
             end
 
+            opts.separator ''
             opts.on('-F', '--format FORMAT',
                     'Specifies the format of the log file. ',
-                    'Supported Choices:' + "\n    " +
-                      "json_formatted, pipe_delimited, comma_delimited\ncolon_delimited, and just delimited.") do |format|
+                    'Supported Choices: json_formatted, pipe_delimited,',
+                    'comma_delimited, colon_delimited, or just delimited',
+                    'using the delimiter set with -l') do |format|
               options[:filetype] = format
             end
-
+            opts.separator ''
             opts.on('-l', '--delimiter CHAR',
                     'Forces "delimited" file type, and uses ',
                     'the character in the argument as the delimiter') do |v|
@@ -64,7 +66,7 @@ module Turnstile
             opts.on('--redis-db DB', 'Redis server db') { |db| Turnstile.config.redis_db = db }
 
             opts.separator "\nMode of Operation:".bold.magenta
-            opts.on('-D', '--daemonize', 'Daemonize to watch the logs') { |v| options[:daemonize] = true }
+            opts.on('-d', '--daemonize', 'Daemonize to watch the logs') { |v| options[:daemonize] = true }
 
             opts.on('-s', '--show [FORMAT]',
                     'Print current stats and exit. Optional format can be',
@@ -75,12 +77,15 @@ module Turnstile
 
             opts.on('-a', '--add TOKEN',
                     'Registers an event from the token, such as ',
-                    '"ios:123.4.4.4:32442". Use -d to customize delimiter.') do |v|
+                    '"ios:123.4.4.4:32442". Use -l to customize delimiter.') do |v|
               options[:token] = v
             end
 
             opts.on('--flushdb', 'Wipes Redis database, and exit.') do |v|
               options[:flushdb] = true
+            end
+            opts.on('--print-keys', 'Prints all Turnstile keys in Redis') do |v|
+              options[:print_keys] = true
             end
 
             opts.separator "\nMiscellaneous:".bold.magenta
@@ -92,7 +97,7 @@ module Turnstile
             end
 
             opts.on('-v', '--verbose', 'Print status to stdout') { |v| options[:verbose] = true }
-            opts.on('-d', '--debug', 'Enable debug logging') { |v| options[:debug] = true }
+            opts.on('-t', '--trace', 'Enable trace mode') { |v| options[:trace] = true }
             opts.on_tail('-h', '--help', 'Show this message') do
               puts opts
               return

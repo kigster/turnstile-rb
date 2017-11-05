@@ -5,39 +5,47 @@ module Turnstile
     class Launcher
       include Dependencies
 
+      attr_reader :stdin, :stdout, :stderr
       attr_accessor :options
 
-      def initialize(options)
-        self.options = options
+      def initialize(options, stdin = STDIN, stdout = STDOUT, stderr = STDERR)
+        self.options            = options
+        @stdin, @stdout, @stderr= stdin, stdout, stderr
       end
 
       def launch
-        if options.show
-          command(:show).execute(options[:show_format] || :json, options[:delimiter])
+        result = if options[:show]
+                   command(:show).execute(options[:show_format] || :json, options[:delimiter])
 
-        elsif options.token
-          tracker.track_token(options[:token], options[:delimiter])
+                 elsif options[:token]
+                   tracker.track_token(options[:token], options[:delimiter])
 
-        elsif options.flushdb
-          count = adapter.flushdb
-          stdout.puts "Deleted a total of #{count} keys."
+                 elsif options[:flushdb]
+                   command(:flushdb).execute
 
-        else
-          Turnstile::Collector::Runner.new(options).run
-        end
+                 elsif options[:print_keys]
+                   command(:print_keys).execute
+
+                 else
+                   Turnstile::Collector::Controller.new(options).start
+                 end
+        puts result if result && !result.empty?
       rescue Exception => e
-        handle_error('Parser#run error:', e)
+        handle_error('Error', e)
+      end
+
+      def command(name)
+        ::Turnstile::Commands.command(name).new(options)
       end
 
       def handle_error(title, e)
-        if options[:debug]
+        if options[:trace]
           trace = e.backtrace.reverse
           last  = trace.pop
           stderr.puts trace.join("\n")
           stderr.puts last.bold.red
         end
         stderr.puts
-
         stderr.puts title.bold.yellow
         stderr.puts "\t" + e.message.red
         stderr.puts

@@ -7,22 +7,21 @@ module Turnstile
       actor_name :flusher
 
       def execute
-        unless queue.empty?
-          flush_current_buffer
-        end
+        flush_current_buffer unless queue.empty?
         queue.size
+      rescue Exception => e
+        puts e.backtrace.reverse.join("\n")
+        puts e.inspect.red
+        raise e
       end
 
       def flush_current_buffer
-        info_elapsed "flushing queue, size #{keys.size}" do
-          while !queue.empty?
-            session = parse(queue.pop)
-            tracker.track(session.uid,
-                          session.platform,
-                          session.ip) if session.uid
-          end
-        end
-        info "queue drained, sleeping #{sleep_when_idle}secs."
+        item = queue.pop
+        return unless item
+        session = parse(item)
+        tracker.track(session.uid,
+                      session.platform,
+                      session.ip) if session.uid
       end
 
       def parse(token)

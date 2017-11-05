@@ -3,13 +3,11 @@ require_relative 'base'
 
 module Turnstile
   module Commands
-    class Flushdb < Base
+    class PrintKeys < Base
       def execute
-        flushdb
-      end
-
-      def flushdb
-        adapter.flushdb
+        adapter.all_keys.each do |key|
+          puts key
+        end
       end
     end
   end
