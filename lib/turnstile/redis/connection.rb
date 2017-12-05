@@ -22,7 +22,6 @@ module Turnstile
         end
       end
 
-
       def with_redis
         with_retries do
           pool.with do |redis|
@@ -30,7 +29,6 @@ module Turnstile
           end
         end
       end
-
 
       def with_pipelined
         with_retries do
@@ -42,7 +40,6 @@ module Turnstile
         end
       end
 
-
       def with_multi
         with_retries do
           with_redis do |redis|
@@ -52,7 +49,6 @@ module Turnstile
           end
         end
       end
-
 
       def with_retries(tries = 3)
         yield(tries)
@@ -69,28 +65,23 @@ module Turnstile
         (e.message =~ /loading/i || e.message =~ /connection/i) ? on_error(e) : raise(e)
       end
 
-
       # This is how we'll be creating redis; depending on input arguments:
       def redis_proc
         @redis_proc ||= (config.redis.url ? redis_proc_from_url : redis_proc_from_opts)
       end
-
 
       # Connection pool to the Redis server
       def pool
         @pool ||= ::ConnectionPool.new(size: config.redis.pool_size, &redis_proc)
       end
 
-
       def on_error(e)
         raise Error.new(e)
       end
 
-
       def redis_proc_from_url
         @redis_proc_from_url ||= proc { ::Redis.new(url: config.redis.url) }
       end
-
 
       def redis_proc_from_opts
         @redis_proc_from_opts ||= proc {

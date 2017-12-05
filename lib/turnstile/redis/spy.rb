@@ -7,7 +7,7 @@ module Turnstile
       class << self
         # in case someone might prefer STDERR, feel free to set
         # it in the gem configuration:
-        # SimpleFeed::Providers::Redis::Driver::LoggingRedis.stream = STDOUT | STDERR | etc...
+        # Turnstile::Redis::Spy.stream = STDOUT | STDERR | etc...
         attr_accessor :stream, :disable_color
       end
 
