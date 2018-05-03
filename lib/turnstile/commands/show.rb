@@ -17,6 +17,9 @@ module Turnstile
         self.send(format, aggregate, delimiter)
       end
 
+      def yaml(data, *)
+        build_string(data, "\n", "---\nturnstile:") { |key, value, *| yaml_row(key, value) }
+      end
 
       # Formats supported for the output
       # JSON
@@ -76,6 +79,10 @@ module Turnstile
 
       def nad_row(key, value)
         %Q(turnstile:#{key}#{"\tn\t"}#{value})
+      end
+
+      def yaml_row(key, value)
+        %Q(  #{key}: #{value})
       end
 
     end

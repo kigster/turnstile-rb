@@ -173,8 +173,8 @@ Turnstile supports two primary formats:
       { "user_id"     :17344742,
         "platform"    :"iphone",
         "session_id"  :"4eKMZJ4nggzvkix29zpS", 
-        "ip_address"  :"70.210.128.241",
-        .... }
+        "ip_address"  :"70.210.128.241"
+      }
       ```
  
  2. Plain text format, where lines are space delimited, and the token is one of the fields of your log line, itself delimited using a configurable character.
@@ -198,7 +198,9 @@ You can also pass the token delimiter on the command line, `-D | --delimiter ","
 
 <a name="custom-matcher"></a>
 
-##### Custom Matchers
+### Custom Log Matchers
+
+> This feature is only available in Turnstile version 3.0 or later.
 
 To be able to tail a structured log file in any format, create a ruby config file, and pass it with `-c <file>`.
 
@@ -210,10 +212,19 @@ For example, below we'll define a custom matcher that extracts our token from a 
 # This matcher extracts platform, UID and IP from the following CSV string:
 # 2018-05-02 21:51:44.031,25928,3997,th-M4wDQM4w0,web,j5v-dzg0J,69.181.72.240,e2b1be795372c385c92a7df420752992
 
-custom_matcher do |line|
-  words = line.split(',')
-  words[4..6].join(':')
+class CSVMatcher
+  def token_from(line)
+    words = line.split(',')
+    platform, ip, uid = words[4..6]
+    [platform, ip, uid].join(':')
+  end
+
+  def matches?(line)
+    line =~ /x-rqst/
+  end
 end
+
+Turnstile.config.custom_matcher = CSVMatcher.new
 ```
 
 The above matcher defines a very simple block that receives a string as input, and returns a string which is a combined value from:

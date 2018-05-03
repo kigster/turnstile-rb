@@ -15,7 +15,6 @@ module Turnstile
         end
       end
 
-
       attr_accessor :queue,
                     :tracker,
                     :sleep_when_idle,
