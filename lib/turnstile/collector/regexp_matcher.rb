@@ -8,9 +8,8 @@ module Turnstile
       # @return [String] a token in the form 'platform:ip:user'
 
       def token_from(line)
-        return nil unless matches?(line)
-        return nil unless extractor
-        extractor ? extractor[line] : nil
+        return nil unless matches?(line) && extractor
+        extractor[line]
       end
 
       def matches?(line)
