@@ -33,33 +33,36 @@ Usage:
      # Print the summary stats and exit
      turnstile -s [ json | csv | nad ] [ options ]
 
-
 Description:
-     Turnstile can be run as a daemon, in which case it watches a given log
-     file. Or, you can run turnstile to print the current aggregated stats
+     Turnstile can be run as a daemon, in which case it watches a given log 
+     file. Or, you can run turnstile to print the current aggregated stats 
      in several supported formats, such as JSON.
-
-     When Turnstile is used to tail the log files, ideally you should
-     start turnstile daemon on each app sever that's generating log file,
-     or be content with the effects of sampling.
-
-     Note that the IP address is not required to track uniqueness. Only
-     platform and UID are used. Also note that custom formatter can be
+    
+     When Turnstile is used to tail the log files, ideally you should 
+     start turnstile daemon on each app sever that's generating log file, 
+     or be content with the effects of sampling. 
+   
+     Note that the IP address is not required to track uniqueness. Only 
+     platform and UID are used. Also note that custom formatter can be 
      specified in a config file to parse arbitrary complex log lines.
-
+   
 Tailing log file:
     -f, --file FILE                  File to monitor
+    
     -p, --read-backwards [LINES]     Used with -f mode, and allows re-processing last N
                                      lines in that file instead of tailing the end
-    -F, --format FORMAT              Specifies the format of the log file.
+    
+    -F, --format FORMAT              Specifies the format of the log file. 
                                      Supported Choices: json_formatted, pipe_delimited,
                                      comma_delimited, colon_delimited, delimited
-                                     (using the delimiter set with -l),
+                                     (using the delimiter set with -l), 
                                      and finally, custom, which can be defined
                                      via Turnstile::Configuration
-    -l, --delimiter CHAR             Forces "delimited" file type, and uses
+    
+    -l, --delimiter CHAR             Forces "delimited" file type, and uses 
                                      the character in the argument as the delimiter
-    -c, --config FILE                Ruby config file that can define
+
+    -c, --config FILE                Ruby config file that can define 
                                      the custom matcher, allowing arbitrary complex log
                                      format parsing. Teach Turnstile how to extract three
                                      tokens from a single line of text using custom_matcher
@@ -74,13 +77,13 @@ Mode of Operation:
     -d, --daemonize                  Daemonize to watch the logs
     -s, --show [FORMAT]              Print current stats and exit. Optional format can be
                                      json (default), nad, yaml, or csv
-    -a, --add TOKEN                  Registers an event from the token, such as
+    -a, --add TOKEN                  Registers an event from the token, such as 
                                      "ios:123.4.4.4:32442". Use -l to customize delimiter.
         --flushdb                    Wipes Redis database, and exit.
         --print-keys                 Prints all Turnstile keys in Redis
 
 Miscellaneous:
-    -i, --idle-sleep SECONDS         When no work was detected, pause the
+    -i, --idle-sleep SECONDS         When no work was detected, pause the 
                                      threads for several seconds.
     -v, --verbose                    Print status to stdout
     -t, --trace                      Enable trace mode
@@ -207,7 +210,7 @@ To be able to tail a structured log file in any format, create a ruby config fil
 For example, below we'll define a custom matcher that extracts our token from a CSV log file.
 
 ```
-# config/turnstile_matcher.rb
+# config/custom_csv_matcher.rb
 
 # This matcher extracts platform, UID and IP from the following CSV string:
 # 2018-05-02 21:51:44.031,25928,3997,th-M4wDQM4w0,web,j5v-dzg0J,69.181.72.240,e2b1be795372c385c92a7df420752992
@@ -215,7 +218,7 @@ For example, below we'll define a custom matcher that extracts our token from a 
 class CSVMatcher
   def token_from(line)
     words = line.split(',')
-    platform, ip, uid = words[4..6]
+    platform, ip, uid = [ words[4], web[6], web[7] ]
     [platform, ip, uid].join(':')
   end
 
@@ -238,7 +241,7 @@ For example, `ios:1.4.54.25:fg7988798779` is a valid token. Note that IP address
 With the above file defined, we would start turnstile's collector process as follows, tailing the CSV log file:
 
 ```bash
-turnstile -f log/production_log.csv -F custom -c config/turnstile_matcher.rb
+turnstile -f log/production_log.csv -F custom -c config/custom_csv_matcher.rb
 ```
 
 ### Examples
@@ -265,8 +268,7 @@ For example:
 ^Ctrl-C
 ```
 
-Note that ideally you should run ```turnstile``` on all app servers, for completeness, and because
-this does not incur any additional cost for the application (as user tracking is happening outside web request).
+Note that ideally you should run ```turnstile``` on all app servers, for completeness, and because this does not incur any additional cost for the application (as user tracking is happening outside web request).
 
 ### Reporting
 
