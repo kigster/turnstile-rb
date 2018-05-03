@@ -9,17 +9,22 @@ module Turnstile
     end
 
     class LogReader < Actor
-      attr_accessor :file, :filename, :matcher
+      attr_accessor :file, :filename, :matcher, :should_reopen
 
       def initialize(log_file:, matcher:, **opts)
         super(**opts)
         self.matcher  = matcher
         self.filename = log_file
+        self.should_reopen = false
         open_and_watch(opts[:tail] ? opts[:tail].to_i : 0)
+
+        reader = self
+        Signal.trap('HUP') { reader.should_reopen = true }
       end
 
       def reopen(a_file = nil)
-        close
+        self.should_reopen = false
+        close rescue nil
         self.filename = a_file if a_file
         open_and_watch(0)
       end
@@ -39,6 +44,7 @@ module Turnstile
           token = matcher.token_from(line)
           yield(token) if block_given? && token
           break if stopping?
+          reopen if should_reopen?
         end
       end
 
@@ -57,8 +63,19 @@ module Turnstile
         file.forward(0) if tail_lines == -1
       end
 
+      def should_reopen?
+        should_reopen
+      end
+
       class << self
         include Formats
+
+        def custom(file, queue, **opts)
+          new(log_file: file,
+              queue:    queue,
+              matcher:  custom_matcher,
+              **opts)
+        end
 
         def pipe_delimited(file, queue, **opts)
           new(log_file: file,

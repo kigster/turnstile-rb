@@ -25,14 +25,19 @@ module Turnstile
         begin
           OptionParser.new do |opts|
             opts.banner = "Usage:\n".bold.magenta +
-              "     turnstile -f <file> [ --daemon ]  [ options ]\n".yellow +
-              "     turnstile -s [ json | csv | nad ] [ options ]\n".yellow +
-              "     turnstile -a 'platform:ip:user'   [ options ]\n".yellow
+              "     # Tail the log file as a proper daemon\n".bold.black +
+              "     turnstile -f <file> [ --daemon ]  [ options ]\n\n".yellow +
+
+              "     # Add a single item and exit\n".bold.black +
+              "     turnstile -a 'platform:ip:user'   [ options ]\n\n".yellow +
+
+              "     # Print the summary stats and exit\n".bold.black +
+              "     turnstile -s [ json | csv | nad ] [ options ]\n\n".yellow
 
             opts.separator 'Description:'.bold.magenta
             opts.separator '   ' + ::Turnstile::DESCRIPTION.gsub(/\n/, "\n   ")
 
-            opts.separator 'Log File Specification:'.bold.magenta
+            opts.separator 'Tailing log file:'.bold.magenta
             opts.on('-f', '--file FILE', 'File to monitor') do |file|
               options[:file] = file
             end
@@ -43,19 +48,26 @@ module Turnstile
               options[:tail] = lines ? lines.to_i : -1
             end
 
-            opts.separator ''
             opts.on('-F', '--format FORMAT',
                     'Specifies the format of the log file. ',
-                    'Supported Choices: json_formatted, pipe_delimited,',
-                    'comma_delimited, colon_delimited, or just delimited',
-                    'using the delimiter set with -l') do |format|
+                    'Supported Choices: ' + 'json_formatted, pipe_delimited,'.blue.bold,
+                    'comma_delimited, colon_delimited, delimited'.blue.bold,
+                    '(using the delimiter set with -l), ',
+                    'and finally, ' + 'custom'.blue.bold + ', which can be defined',
+                    'via ' + 'Turnstile::Configuration'.bold.blue) do |format|
               options[:filetype] = format
             end
-            opts.separator ''
             opts.on('-l', '--delimiter CHAR',
                     'Forces "delimited" file type, and uses ',
                     'the character in the argument as the delimiter') do |v|
               options[:delimiter] = v
+            end
+
+            opts.on('-c', '--config FILE', 'Ruby config file that can define ',
+                    'the custom matcher, allowing arbitrary complex log',
+                    'format parsing. Teach Turnstile how to extract three',
+                    'tokens from a single line of text using custom_matcher') do |file|
+              options[:config_file] = file
             end
 
             opts.separator "\nRedis Server:".bold.magenta

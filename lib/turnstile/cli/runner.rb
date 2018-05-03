@@ -2,6 +2,7 @@ require 'optparse'
 require 'colored2'
 
 require_relative '../version'
+require_relative '../configuration'
 
 require_relative 'launcher'
 require_relative 'parser'
@@ -16,10 +17,8 @@ module Turnstile
         @argv, @stdin, @stdout, @stderr, @kernel = argv, stdin, stdout, stderr, kernel
       end
 
-
       def execute!
         exit_code = begin
-
           Colored2.disable! unless stdout.tty?
 
           $stderr = stderr
@@ -27,6 +26,7 @@ module Turnstile
           $stdout = stdout
 
           options = Parser.new(argv, self).parse
+          Configuration.from_file(options.config_file) if options && options.config_file
           Launcher.new(options).launch if options
 
           # Thor::Base#start does not have a return value, assume success if no exception is raised.

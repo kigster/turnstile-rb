@@ -13,6 +13,8 @@ require 'turnstile/cli/runner'
 
 module Turnstile
   class CommandNotFoundError < StandardError; end
+  class ConfigFileError < StandardError; end
+
 
   class << self
     attr_accessor :debug

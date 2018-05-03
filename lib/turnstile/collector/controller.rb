@@ -57,7 +57,6 @@ module Turnstile
 
       private
 
-
       def flusher_arguments
         symbolize(actor_argument_hash.merge(sleep_when_idle: options[:flush_interval] || 10))
       end
@@ -78,7 +77,7 @@ module Turnstile
 
       def wait_for_file(file)
         sleep_period = 1
-        while !File.exist?(file)
+        while !::File.exist?(file)
           STDERR.puts "File #{file.bold.yellow} does not exist, waiting for it to appear..."
           STDERR.puts 'Press Ctrl-C to abort.' if sleep_period == 1
 

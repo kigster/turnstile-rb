@@ -22,32 +22,47 @@ Add this line to your application's Gemfile:
 
 The gem provides command line interface shown below:
 
-```bash
+```
 Usage:
+     # Tail the log file as a proper daemon
      turnstile -f <file> [ --daemon ]  [ options ]
-     turnstile -s [ json | csv | nad ] [ options ]
+
+     # Add a single item and exit
      turnstile -a 'platform:ip:user'   [ options ]
+
+     # Print the summary stats and exit
+     turnstile -s [ json | csv | nad ] [ options ]
+
 
 Description:
      Turnstile can be run as a daemon, in which case it watches a given log
-     file. Or, you can run turnstile executable to print the current aggregated
-     stats in several supported formats.
+     file. Or, you can run turnstile to print the current aggregated stats
+     in several supported formats, such as JSON.
 
-     When Turnstile is used to tail the log files, please make sure that you
-     start turnstile daemon on each app sever that's generating log file.
+     When Turnstile is used to tail the log files, ideally you should
+     start turnstile daemon on each app sever that's generating log file,
+     or be content with the effects of sampling.
 
-Log File Specification:
+     Note that the IP address is not required to track uniqueness. Only
+     platform and UID are used. Also note that custom formatter can be
+     specified in a config file to parse arbitrary complex log lines.
+
+Tailing log file:
     -f, --file FILE                  File to monitor
     -p, --read-backwards [LINES]     Used with -f mode, and allows re-processing last N
                                      lines in that file instead of tailing the end
-
     -F, --format FORMAT              Specifies the format of the log file.
                                      Supported Choices: json_formatted, pipe_delimited,
-                                     comma_delimited, colon_delimited, or just delimited
-                                     using the delimiter set with -l
-
+                                     comma_delimited, colon_delimited, delimited
+                                     (using the delimiter set with -l),
+                                     and finally, custom, which can be defined
+                                     via Turnstile::Configuration
     -l, --delimiter CHAR             Forces "delimited" file type, and uses
                                      the character in the argument as the delimiter
+    -c, --config FILE                Ruby config file that can define
+                                     the custom matcher, allowing arbitrary complex log
+                                     format parsing. Teach Turnstile how to extract three
+                                     tokens from a single line of text using custom_matcher
 
 Redis Server:
     -r, --redis-url URL              Redis server URL
@@ -69,7 +84,7 @@ Miscellaneous:
                                      threads for several seconds.
     -v, --verbose                    Print status to stdout
     -t, --trace                      Enable trace mode
-    -h, --help                       Show this message`
+    -h, --help                       Show this message
 ```
 
 Effectively, you can run `turnstile` CLI tool in order to:
@@ -80,18 +95,23 @@ Effectively, you can run `turnstile` CLI tool in order to:
  * to reset all data
  * to add new data
 
-### Tracking 
+### Data Collection and Reporting 
 
 Turnstile contains two primary parts: data collection and reporting.  
 
 Data collection may happen in two way:
 
-1. Synchronously — in real time — i.e. from a web request
-2. Or asynchronously — by "tailing" the logs on your servers
+  1. Synchronously — in real time — i.e. from a web request
+  2. Or asynchronously — by "tailing" the logs on your servers
 
-Synchronous tracking is more accurate, supports sampling, but introduces a run-time dependency into your application middleware stack that might not be desirable.
+*Synchronous tracking* is accurate, supports sampling, but introduces a run-time dependency into your application middleware stack that might not be desirable. This is how `Rack::Attack` and other similar middleware operates. Luckily, there is a better way. 
 
-Asynchronous tracking has a slight initial setup overhead, but has zero run-time overhead, as the data collection happens outside of the web request.
+*Asynchronous tracking* has a slight initial setup overhead and it requires a consistently formatted log file that includes lines with the platform, IP and user ID for ALL users at least some of the time. This method introduces zero run-time overhead, as the data collection happens outside of the web request in a standalone daemon, that simply tails your log files. 
+
+On high performance web applications it is highly recommended to employ the *asynchronous tracking* via the log file, and possibly — a custom matcher.
+
+> NOTE: as of Turnstile version 3, you can define a [custom matcher](#custom-matcher) in a ruby-syntax configuration file. Coupled with `-F custom` you are then able to parse arbitrary complex log files and extract the three tokens needed by Turnstile: the `platform` enum type, `IP addresss`, and `User ID`. 
+
 
 #### Real Time Tracking API
 
@@ -175,6 +195,40 @@ Possible values are:
 You can also pass the token delimiter on the command line, `-D | --delimiter "," ` in which case the `delimited` file type is used, with your custom delimiter. 
 
 > NOTE: Default format is **`pipe_delimited`**.
+
+<a name="custom-matcher"></a>
+
+##### Custom Matchers
+
+To be able to tail a structured log file in any format, create a ruby config file, and pass it with `-c <file>`.
+
+For example, below we'll define a custom matcher that extracts our token from a CSV log file.
+
+```
+# config/turnstile_matcher.rb
+
+# This matcher extracts platform, UID and IP from the following CSV string:
+# 2018-05-02 21:51:44.031,25928,3997,th-M4wDQM4w0,web,j5v-dzg0J,69.181.72.240,e2b1be795372c385c92a7df420752992
+
+custom_matcher do |line|
+  words = line.split(',')
+  words[4..6].join(':')
+end
+```
+
+The above matcher defines a very simple block that receives a string as input, and returns a string which is a combined value from:
+
+```ruby
+"#{platform}:#{ip}:#{user_id}"
+``` 
+
+For example, `ios:1.4.54.25:fg7988798779` is a valid token. Note that IP addresses are not necessary for the purposes of tracking, and can be omitted.
+
+With the above file defined, we would start turnstile's collector process as follows, tailing the CSV log file:
+
+```bash
+turnstile -f log/production_log.csv -F custom -c config/turnstile_matcher.rb
+```
 
 ### Examples
 

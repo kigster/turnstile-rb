@@ -1,6 +1,6 @@
 module Turnstile
   module Collector
-    class Matcher < Struct.new(:regexp, :extractor)
+    class RegexpMatcher < Struct.new(:regexp, :extractor)
       # checks if the line matches +regexp+, and if yes
       # runs it through +extractor+ to grab the token
       #

@@ -26,7 +26,7 @@ module Turnstile
                  elsif options[:print_keys]
                    command(:print_keys).execute
 
-                 else
+                 elsif options[:file]
                    Turnstile::Collector::Controller.new(options).start
                  end
         puts result if result && !result.empty?

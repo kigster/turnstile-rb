@@ -25,9 +25,25 @@ module Turnstile
     property :sampling_rate, default: 100, required: true, transform_with: ->(value) { value.to_i }
     property :redis, default: ::Turnstile::RedisConfig.new
 
+    # A matcher is a Proc that takes a string as an input, and returns an array of [ user_id, platform, IP ]
+    # with IP being optional.
+    def custom_matcher(&block)
+      @custom_matcher ||= block if block
+    end
+
     def configure
       yield self if block_given?
       self
+    end
+
+    class << self
+      def from_file(file = nil)
+        return unless file
+        content = File.read(file)
+        Turnstile.config.instance_eval content
+      rescue Exception => e
+        raise ConfigFileError.new("Error reading configuration from a file #{file}: #{e.message}")
+      end
     end
 
     def method_missing(method, *args, &block)

@@ -1,5 +1,5 @@
 module Turnstile
-  VERSION     = '2.2.0'
+  VERSION     = '3.0.0'
 
   GEM_DESCRIPTION = <<-EOF
   Turnstile is a Redis-based library that can accurately track total 
@@ -13,11 +13,16 @@ module Turnstile
 
   DESCRIPTION = <<-EOF
   Turnstile can be run as a daemon, in which case it watches a given log 
-  file. Or, you can run turnstile executable to print the current aggregated 
-  stats in several supported formats.
+  file. Or, you can run turnstile to print the current aggregated stats 
+  in several supported formats, such as JSON.
  
-  When Turnstile is used to tail the log files, please make sure that you
-  start turnstile daemon on each app sever that's generating log file.
+  When Turnstile is used to tail the log files, ideally you should 
+  start turnstile daemon on each app sever that's generating log file, 
+  or be content with the effects of sampling. 
+
+  Note that the IP address is not required to track uniqueness. Only 
+  platform and UID are used. Also note that custom formatter can be 
+  specified in a config file to parse arbitrary complex log lines.
   EOF
 
   NS = "x-turnstile|#{VERSION.gsub(/\./,'')}".freeze
