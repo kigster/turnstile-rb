@@ -157,7 +157,7 @@ To summarize, you can run `turnstile` in order to:
  * to reset all data
  * to add new data
 
-### Data Collection and Reporting 
+## Data Collection and Reporting 
 
 Turnstile contains two primary parts: data collection and reporting.  
 
@@ -175,7 +175,7 @@ On high performance web applications it is highly recommended to employ the *asy
 > NOTE: as of Turnstile version 3, you can define a [custom matcher](#custom-matcher) in a ruby-syntax configuration file. Coupled with `-F custom` you are then able to parse arbitrary complex log files and extract the three tokens needed by Turnstile: the `platform` enum type, `IP addresss`, and `User ID`. 
 
 
-#### Real Time Tracking API
+### Real Time Tracking API
 
 With Real Time tracking you can use sampling to _estimate_ the number of online users. 
 
@@ -204,13 +204,13 @@ ip        = '224.247.12.4'
 
 Without any further calls to ```track()``` method for this particular user/platform/ip combination, the user  is considered _online_ for 60 seconds.  Each subsequent call to ```track()``` resets the TTL.
 
-#### Offline Log Parsing by "Tailing Logs"
+### Offline Log Parsing by "Tailing Logs"
 
 If adding latency to a web request is not desirable, another option is to run Turnstile ```turnstile``` process as a daemon on each application server. The daemon "tails" the `production.log` file (or any other file), while scanning for lines matching a particular configurable pattern, and then extracting `user id`, `IP` and `platform` based on another configurable regular expression setting.
 
-##### Data Structure
+#### Data Structure
 
-The logging approach expects that you print a special token into your log file, which contains three fields separated by a delimiter:
+The logging approach expects that you print a special token into your log file, which contains several fields separated by a delimiter:
 
  * `x-turnstile` is a hardcoded string used in finding this token,
  * `platform` — ideally a short string, such as 'desktop', 'ios', 'android', etc
@@ -225,19 +225,17 @@ x-turnstile:desktop:125.4.5.13:3456
 
 is colon-separated, and easily extractable from the log.
 
-##### Log File Formats
+#### Log File Formats
 
-Turnstile supports two primary formats:
+Turnstile supports two major formats out of the box, and you can always provide your own custom matcher to parse any log. More info on [custom matcher](#custom-matcher) down below.
+
+Provided matchers are:
 
  1. JSON format, where each **log line** contains the following JSON fields:
  
-      ```json
-      { "user_id"     :17344742,
-        "platform"    :"iphone",
-        "session_id"  :"4eKMZJ4nggzvkix29zpS", 
-        "ip_address"  :"70.210.128.241"
-      }
-      ```
+    ```json
+    { "platform": "ios", "user_id": "125245345", "ip_address": "70.210.128.241"}
+    ```
  
  2. Plain text format, where lines are space delimited, and the token is one of the fields of your log line, itself delimited using a configurable character.
  
@@ -249,18 +247,14 @@ You can specify the file format using the `-t | --file-type` switch.
 
 Possible values are:
 
- * `json_formatted`
- * `pipe_delimited`
- * `colon_delimited`
- * `comma_delimited`
+ * `json_formatted`, or one of
+ * `pipe_delimited`, `colon_delimited`, `comma_delimited`, or just `delimited` (used with `-l` flag)
  
-You can also pass the token delimiter on the command line, `-D | --delimiter "," ` in which case the `delimited` file type is used, with your custom delimiter. 
-
 > NOTE: Default format is **`pipe_delimited`**.
 
 <a name="custom-matcher"></a>
 
-### Custom Log Matchers
+#### Custom Log Matchers
 
 > This feature is only available in Turnstile version 3.0 or later.
 
@@ -303,37 +297,42 @@ With the above file defined, we would start turnstile's collector process as fol
 turnstile -f log/production_log.csv -F custom -c config/custom_csv_matcher.rb
 ```
 
-### Examples
+#### Examples
 
-For example:
+For example, using built-in matchers:
 
 ```bash
 > gem install turnstile
 
-> turnstile -v -f log/production/log -t json_formatted | \
-    tee -a /var/log/turnstile.log
+> turnstile -v -f log/production/log -t json_formatted
+> turnstile -v -f log/production/log -r redis://localhost:6379/1
+```
 
-> turnstile -v -f log/production/log -h 127.0.0.1 -p 6432 | \
-    tee -a /var/log/turnstile.log
+And using a custom matcher, and starting a web client on port 9090, and using `hiredis` driver:
 
-2014-04-12 05:16:41 -0700: updater:flush        - nothing to flush, sleeping 6s..
-2014-04-12 05:16:41 -0700: updater:queue        - nothing in the queue, sleeping 5s...
-2014-04-12 05:16:41 -0700: log-reader           - starting to tail file log....
-2014-04-12 05:16:46 -0700: updater:queue        - nothing in the queue, sleeping 5s...
-2014-04-12 05:16:53 -0700: updater:flush        - nothing to flush, sleeping 6s..
-2014-04-12 05:16:56 -0700: updater:queue        - (     0.65ms) caching [746] keys locally
-2014-04-12 05:16:59 -0700: updater:flush        - (    91.73ms) flushing cache with [602] keys
-2014-04-12 05:17:05 -0700: updater:flush        - nothing to flush, sleeping 6s..
-^Ctrl-C
+```bash
+> turnstile -f /var/log/production.log -t -v \
+     -F custom -c /etc/turnstile/matcher.rb \ 
+     -w 9090 -r redis://redis.corp.systems:6379/1 \
+     -i 5 --hiredis
+
 ```
 
 Note that ideally you should run ```turnstile``` on all app servers, for completeness, and because this does not incur any additional cost for the application (as user tracking is happening outside web request).
 
-### Reporting
+## Reporting
 
-Once the tracking information is sent, the data can be queried.  
+Once the tracking information is sent, the data can be queried and summarized.
 
-If you used sampling, then you should query using ```Turnstile::Observer``` class that provides  exprapolation of the results based on sample size configuration.
+### Sinatra App
+
+You can start Turnstile with `-w` flag, which boots Sinatra on port 9090.
+
+Connect to `http://localhost:9090/turnstile/json` to see the JSON representation of the results.
+  
+### Ruby API
+  
+If you used sampling, then you should query using ```Turnstile::Observer``` class that provides  extrapolation of the results based on sample size configuration.
 
 ```ruby
 # Return data for sampled users and the summary 
@@ -358,9 +357,7 @@ Turntstile::Adapter.new.aggregate
 # => { 'desktop' => 234, 'ios' => 3214, ...,  'total' => 4566 }
 ```
 
-### Summary Printing
-
-### JSON and CSV
+### Summary CLI Commands
 
 Use the following syntax:
 
@@ -372,13 +369,9 @@ turnstile -s json
 turnstile -s csv
 ```
 
+**Circonus NAD**
 
-
-#### Circonus NAD
-
-We use Circonus to collect and graph data. You can use ```turnstile```
-to dump the current aggregate statistics from redis to standard output,
-which is a tab-delimited format consumable by the nad daemon.
+You can use ```turnstile``` to dump the current aggregate statistics from redis to standard output, which is a tab-delimited format consumable by the nad daemon.
 
 (below output is formatted to show tabs as aligned for readability).
 
@@ -394,15 +387,40 @@ turnstile.total      n     595
 ```
 
 
-## TODO:
+## Operation
 
-* Allow users of the gem to easier customize log reader to fit their own custom log files
-* Export configuration into a YAML file and load from there by defaul
-* Refactor commands to have a single ```turnstile``` CLI with sub-commands ```watch``` and ```report```.
+Below is an example `systemd` initialization file you can use to run Turnstile as a service:
+
+```systemd
+[Unit]
+Description = Turnstile Service
+
+[Service]
+SyslogIdentifier = turnstile.service
+Type = simple
+ExecStart = /usr/local/rbenv/shims/turnstile -f /var/log/production.log \
+   -t -v -F custom -c /etc/turnstile/matcher.rb -w 9090 \
+   -r redis://redis.app.systems:6379/4 -i 5 --hiredis
+WorkingDirectory = /etc/turnstile
+RemainAfterExit = yes
+Restart = always
+RestartSec = 500ms
+KillSignal = SIGTERM
+User = turnstile
+Group = turnstile
+Slice = app.slice
+```
+
+## Author(s)
+
+ * Konstantin Gredeskoul [@kigster](https://github.com/kigster)
+ * Eric Saxby [@sax](https://github.com/sax)
+ 
+Distributed under MIT License.
 
 ## Contributing
 
-1. Fork it ( http://github.com/<my-github-username>/turnstile/fork )
+1. Fork it ( http://github.com/kigster/turnstile-rb/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
