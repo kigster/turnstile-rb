@@ -138,7 +138,7 @@ module Turnstile
             opts.on('-i', '--idle-sleep SECONDS',
                     'When no work was detected, pause the ',
                     'threads for several seconds.') do |v|
-              options[:flush_interval] = v.to_i
+              Turnstile.config.flush_interval = v.to_i
             end
 
             opts.on('-v', '--verbose', 'Print status to stdout') { |v| options[:verbose] = true }

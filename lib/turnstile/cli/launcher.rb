@@ -17,6 +17,7 @@ module Turnstile
         launch_sinatra_app if options[:web]
         launch_signal_handler
 
+        tdb "config: #{config.to_h}" if Turnstile.config.trace
         result = if options[:show]
                    command(:show).execute(options[:show_format] || :json, options[:delimiter])
 
@@ -50,6 +51,7 @@ module Turnstile
       def launch_sinatra_app
         @sinatra_thread = Thread.new do
           require_relative '../web_app'
+          Kernel.exit(0)
         end
       end
 

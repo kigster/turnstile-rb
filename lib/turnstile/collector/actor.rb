@@ -1,5 +1,7 @@
 require_relative 'session'
 require_relative '../logger/helper'
+require_relative '../dependencies'
+require 'turnstile'
 require 'thread'
 module Turnstile
   module Collector
@@ -24,7 +26,7 @@ module Turnstile
 
       def initialize(queue:,
                      tracker: nil,
-                     sleep_when_idle: 10,
+                     sleep_when_idle: Turnstile.config.flush_interval,
                      **opts)
 
         self.queue           = queue
@@ -32,10 +34,16 @@ module Turnstile
         self.tracker         = tracker || Turnstile::Tracker.new
         self.options         = opts
         self.stopping        = false
+
+        Kernel.tdb "actor initialized: #{self.to_s}" if Turnstile.config.trace
       end
 
       def shutdown
         self.stopping = true
+      end
+
+      def config
+        @config ||= Turnstile.config
       end
 
       def stopping?
@@ -50,6 +58,10 @@ module Turnstile
             sleep(sleep_period) unless items_remaining && items_remaining > 0
           end
         end
+      end
+
+      def to_s
+        "<turnsile-actor##{self.class.name.gsub(/.*::/, '').downcase}: queue size: #{queue.size}, idle=#{sleep_when_idle}"
       end
 
       # Return nil when there is nothing else to do

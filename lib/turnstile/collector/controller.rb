@@ -64,14 +64,18 @@ module Turnstile
         Hashie::Extensions::SymbolizeKeys.symbolize_keys(opts.to_h)
       end
 
+      def config
+        @config ||= Turnstile.config
+      end
+
       private
 
       def flusher_arguments
-        symbolize(actor_argument_hash.merge(sleep_when_idle: options[:flush_interval] || 10))
+        symbolize(actor_argument_hash.merge(sleep_when_idle: config.flush_interval))
       end
 
       def reader_arguments
-        reader_args_hash   = actor_argument_hash.merge(sleep_when_idle: options[:flush_interval] || 10)
+        reader_args_hash   = actor_argument_hash.merge(sleep_when_idle: config.flush_interval)
         matcher, delimiter = select_matcher
 
         reader_args_hash.merge!(delimiter: delimiter) if delimiter

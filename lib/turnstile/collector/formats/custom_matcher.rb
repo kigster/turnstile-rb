@@ -13,7 +13,6 @@ module Turnstile
           @custom_matcher ||= Turnstile.config.custom_matcher
         end
       end
-
     end
   end
 end

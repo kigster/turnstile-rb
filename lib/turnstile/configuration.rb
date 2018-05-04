@@ -27,6 +27,7 @@ module Turnstile
     property :sampling_rate, default: 100, required: true, transform_with: ->(value) { value.to_i }
     property :redis, default: ::Turnstile::RedisConfig.new
     property :custom_matcher
+    property :flush_interval, default: 10
     property :trace
     property :port, default: ::Turnstile::DEFAULT_PORT
 
