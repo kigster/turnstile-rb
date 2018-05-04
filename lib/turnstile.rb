@@ -14,7 +14,7 @@ require 'turnstile/cli/runner'
 module Turnstile
   class CommandNotFoundError < StandardError; end
   class ConfigFileError < StandardError; end
-
+  class HiredisDriverNotFound < StandardError; end
 
   class << self
     attr_accessor :debug
@@ -38,5 +38,12 @@ module Turnstile
     end
 
   end
+end
 
+Kernel.define_method :tdb do |msg, io = STDOUT|
+   io.puts ''.green + ' debug '.black.on.green+ ''.green + ' —— ' + msg
+end
+
+Kernel.define_method :terr do |msg, io = STDERR|
+   io.puts ''.bold.red + ' error '.bold.white.on.red + ''.red + ' —— ' + msg
 end

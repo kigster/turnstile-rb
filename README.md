@@ -22,77 +22,136 @@ Add this line to your application's Gemfile:
 
 The gem provides command line interface shown below:
 
+ 
+### Description
+
+Turnstile is a Redis-based library that can accurately track total number
+of concurrent users accessing a web/API based server application. It can
+break it down by "platform" or a device type, and returns data in JSON,
+CSV of NAD formats. While user tracking may happen synchronously using a
+Rack middleware, another method is provided that is based on log file
+analysis, and can therefore be performed outside web server process.
+
+### Usage
+
 ```
-Usage:
-     # Tail the log file as a proper daemon
-     turnstile -f <file> [ --daemon ]  [ options ]
+   # Tail the log file as a proper daemon
+   turnstile -f <file> [ --daemon ]  [ options ]
 
-     # Add a single item and exit
-     turnstile -a 'platform:ip:user'   [ options ]
+   # Add a single item and exit
+   turnstile -a 'platform:ip:user'   [ options ]
 
-     # Print the summary stats and exit
-     turnstile -s [ json | csv | nad ] [ options ]
+   # Print the summary stats and exit
+   turnstile -s [ json | csv | nad ] [ options ]
+```
 
-Description:
-     Turnstile can be run as a daemon, in which case it watches a given log 
-     file. Or, you can run turnstile to print the current aggregated stats 
-     in several supported formats, such as JSON.
-    
-     When Turnstile is used to tail the log files, ideally you should 
-     start turnstile daemon on each app sever that's generating log file, 
-     or be content with the effects of sampling. 
+### Details
+
+Turnstile can be run as a daemon, in which case it watches a given log
+file. Or, you can run turnstile to print the current aggregated stats in
+several supported formats, such as JSON.
    
-     Note that the IP address is not required to track uniqueness. Only 
-     platform and UID are used. Also note that custom formatter can be 
-     specified in a config file to parse arbitrary complex log lines.
+When Turnstile is used to tail the log files, ideally you should start
+turnstile daemon on each app sever that's generating log file, or be
+content with the effects of sampling.
+
+Note that the IP address is not required to track uniqueness. Only
+platform and UID are used. Also note that custom formatter can be
+specified in a config file to parse arbitrary complex log lines.
+
    
-Tailing log file:
-    -f, --file FILE                  File to monitor
-    
-    -p, --read-backwards [LINES]     Used with -f mode, and allows re-processing last N
-                                     lines in that file instead of tailing the end
-    
-    -F, --format FORMAT              Specifies the format of the log file. 
-                                     Supported Choices: json_formatted, pipe_delimited,
-                                     comma_delimited, colon_delimited, delimited
-                                     (using the delimiter set with -l), 
-                                     and finally, custom, which can be defined
-                                     via Turnstile::Configuration
-    
-    -l, --delimiter CHAR             Forces "delimited" file type, and uses 
-                                     the character in the argument as the delimiter
+For tailing a log files, Turnstile must first match a log line expected to
+contain the tokens, and then extract is using one of the matchers. You can
+specify which matcher to use depending on whether you can add Turnstile's 
+tokens to your log or not. If you can, great! If not, implement your own 
+custom matcher and great again.
 
-    -c, --config FILE                Ruby config file that can define 
-                                     the custom matcher, allowing arbitrary complex log
-                                     format parsing. Teach Turnstile how to extract three
-                                     tokens from a single line of text using custom_matcher
+The following matchers are available, and can be selected with -F:
+   
+1. Format named `delimited`, which expects the following token in the
+   log file:
 
-Redis Server:
+       x-turnstile:platform:ip:user-identifier
+
+   Where ':' (the delimiter) can be set via -l option, OR you can use one
+   of the following formats: `json_formatted`, `pipe_formatted`,
+   `comma_formatted`, `colon_formatted` (the default). The match is 
+   performed on a string `x-turnstile`, other log lines are skipped.
+
+2. Format `json_delimited`, which expects to find a single-line JSON
+   Hash, containing keys `platform`, `ip_address`, and `user_id`. The match
+   is performed on any log line containing string '`ip_address`', other
+   lines are skipped.
+ 
+3.  Format `custom` requires passing an additional flag `-c/--config
+   file.rb`, which will be required, and which can define a matcher and
+   assign it to the `Turnstile.config.custom_matcher` config variable.
+   
+Custom matcher is any object that responds to two methods:
+
+ * `matches?(line)` — must return true if the line is to be used in token extraction, and
+ * `tokenlize(line)` — must return a string of the form `platform:ip:user-id` as a result of parsing the `line`.
+
+### Command Line Options
+
+The following flags are available:
+
+```
+  Mode of Operation:
+    -f, --file FILE                  Starts Turnstile in a file-tailing mode
+                                      
+    -s, --show [FORMAT]              Print current stats and exit. Optional 
+                                     format can be "json" (default), "nad",
+                                     "yaml", or "csv"
+                                      
+    -w, --web [PORT]                 Starts a Sinatra app on a given port
+                                     offering /turnstile/<json|yaml> end point.
+                                     Can be used with file tailing mode, or
+                                     standalone. Default port is 9090
+                                      
+    -a, --add TOKEN                  Registers an event from the token, such as 
+                                     "ios:123.4.4.4:32442". Use -l to customize
+                                     the delimiter
+                                      
+    -p, --print-keys                 Prints all Turnstile keys in Redis
+                                      
+        --flushdb                    Wipes Redis database, and exit
+                                      
+  Tailing log file:
+    -d, --daemonize                  Daemonize to watch the logs
+                                      
+    -b, --read-backwards [LINES]     Like tail, read last LINES lines
+                                     instead of tailing from the end
+                                      
+    -F, --format FORMAT              Log file format (see above)
+                                      
+    -l, --delimiter CHAR             Forces "delimited" file type, and 
+                                     uses CHAR as the delimiter
+                                      
+    -c, --config FILE                Ruby config file that can define the
+                                     custom matcher, supporting arbitrary 
+                                     complex logs
+
+  Redis Server:
     -r, --redis-url URL              Redis server URL
         --redis-host HOST            Redis server host
         --redis-port PORT            Redis server port
         --redis-db DB                Redis server db
+        --hiredis                    Use hiredis high performance library
 
-Mode of Operation:
-    -d, --daemonize                  Daemonize to watch the logs
-    -s, --show [FORMAT]              Print current stats and exit. Optional format can be
-                                     json (default), nad, yaml, or csv
-    -a, --add TOKEN                  Registers an event from the token, such as 
-                                     "ios:123.4.4.4:32442". Use -l to customize delimiter.
-        --flushdb                    Wipes Redis database, and exit.
-        --print-keys                 Prints all Turnstile keys in Redis
-
-Miscellaneous:
+  Miscellaneous:
     -i, --idle-sleep SECONDS         When no work was detected, pause the 
                                      threads for several seconds.
     -v, --verbose                    Print status to stdout
     -t, --trace                      Enable trace mode
     -h, --help                       Show this message
+
 ```
 
-Effectively, you can run `turnstile` CLI tool in order to:
+To summarize, you can run `turnstile` in order to:
 
  * start a daemon to tail a log file
+ * optionally start a Sinatra web server on port 9090, that returns aggregated results to `/turnstile/json`
  * to print results
  * to print all redis keys
  * to reset all data
@@ -216,7 +275,7 @@ For example, below we'll define a custom matcher that extracts our token from a 
 # 2018-05-02 21:51:44.031,25928,3997,th-M4wDQM4w0,web,j5v-dzg0J,69.181.72.240,e2b1be795372c385c92a7df420752992
 
 class CSVMatcher
-  def token_from(line)
+  def tokenize(line)
     words = line.split(',')
     platform, ip, uid = [ words[4], web[6], web[7] ]
     [platform, ip, uid].join(':')

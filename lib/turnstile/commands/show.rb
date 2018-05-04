@@ -9,7 +9,6 @@ module Turnstile
         STDOUT.puts render_totals(format, delimiter)
       end
 
-
       def render_totals(format, delimiter = nil)
         unless self.respond_to?(format)
           raise ArgumentError, "Format #{format} is not supported"

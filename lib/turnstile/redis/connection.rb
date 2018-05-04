@@ -1,6 +1,5 @@
-require 'attr_memoized'
 require 'timeout'
-
+require 'colored2'
 require_relative 'adapter'
 
 module Turnstile
@@ -80,15 +79,36 @@ module Turnstile
       end
 
       def redis_proc_from_url
-        @redis_proc_from_url ||= proc { ::Redis.new(url: config.redis.url) }
+        @redis_proc_from_url ||= proc do
+          ::Redis.new(redis_opts(url: config.redis.url)).tap do |conn|
+            log_connection(conn)
+          end
+        end
+      end
+
+      def redis_opts(opts)
+        opts.tap do |hash|
+          hash[:driver] = 'hiredis' if config.redis_use_hiredis
+        end
       end
 
       def redis_proc_from_opts
         @redis_proc_from_opts ||= proc {
-          ::Redis.new(host: config.redis.host,
-                      port: config.redis.port,
-                      db:   config.redis.db)
+          ::Redis.new(redis_opts(host: config.redis.host,
+                                 port: config.redis.port,
+                                 db:   config.redis.db)).tap do |conn|
+            log_connection(conn)
+          end
         }
+      end
+
+      private
+
+      def log_connection(conn)
+        if config.trace
+          tdb "created a new redis connection: #{conn}"
+          tdb "driver: #{conn.instance_variable_get(:@client).driver}"
+        end
       end
     end
   end

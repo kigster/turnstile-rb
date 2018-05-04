@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
-ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../../Gemfile', __FILE__)
 
-require 'rubygems'
-require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
+lib_path = File.expand_path(File.dirname(__FILE__) + '/../lib')
+$LOAD_PATH << lib_path if File.exist?(lib_path) && !$LOAD_PATH.include?(lib_path)
+
 require 'turnstile'
 
 Turnstile::CLI::Runner.new(ARGV).execute!

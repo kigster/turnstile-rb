@@ -26,9 +26,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'daemons'
   spec.add_dependency 'hashie'
   spec.add_dependency 'colored2'
-  spec.add_dependency 'attr_memoized'
   spec.add_dependency 'connection_pool'
   spec.add_dependency 'activesupport'
+  spec.add_dependency 'sinatra'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rake'

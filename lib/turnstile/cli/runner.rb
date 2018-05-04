@@ -33,9 +33,13 @@ module Turnstile
           0
         rescue StandardError => e
           # The ruby interpreter would pipe this to STDERR and exit 1 in the case of an unhandled exception
-          b = e.backtrace
-          @stderr.puts("#{b.shift}: #{e.message} (#{e.class})")
-          @stderr.puts(b.map { |s| "\tfrom #{s}" }.join("\n"))
+          if options && options[:trace]
+            b = e.backtrace
+            terr("#{b.shift}: #{e.message} (#{e.class})")
+            terr(b.map { |s| "\tfrom #{s}" }.join("\n"))
+          else
+            terr(e.message)
+          end
           1
         rescue SystemExit => e
           e.status

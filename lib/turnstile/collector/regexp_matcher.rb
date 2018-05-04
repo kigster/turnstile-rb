@@ -7,7 +7,7 @@ module Turnstile
       # @param [String] line read from a log file
       # @return [String] a token in the form 'platform:ip:user'
 
-      def token_from(line)
+      def tokenize(line)
         return nil unless matches?(line) && extractor
         extractor[line]
       end

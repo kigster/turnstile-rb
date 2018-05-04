@@ -5,7 +5,7 @@
 #
 module Application
   class CSVLogFormat
-    def token_from(line)
+    def tokenize(line)
       platform = line.scan(/src=(\w*)/).flatten.first
       ip       = line.scan(/ip=(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/).flatten.first
       uid      = line.scan(/sess=(\w*)/).flatten.first

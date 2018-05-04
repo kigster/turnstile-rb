@@ -5,7 +5,7 @@ module Turnstile
     class Launcher
       include Dependencies
 
-      attr_reader :stdin, :stdout, :stderr
+      attr_reader :stdin, :stdout, :stderr, :sinatra_thread
       attr_accessor :options
 
       def initialize(options, stdin = STDIN, stdout = STDOUT, stderr = STDERR)
@@ -14,6 +14,9 @@ module Turnstile
       end
 
       def launch
+        launch_sinatra_app if options[:web]
+        launch_signal_handler
+
         result = if options[:show]
                    command(:show).execute(options[:show_format] || :json, options[:delimiter])
 
@@ -27,11 +30,27 @@ module Turnstile
                    command(:print_keys).execute
 
                  elsif options[:file]
-                   Turnstile::Collector::Controller.new(options).start
+                   controller.start
                  end
+
+
         puts result if result && !result.empty?
+      rescue SystemExit, SignalException
+        exit 6
       rescue Exception => e
         handle_error('Error', e)
+      ensure
+        sinatra_thread.join if sinatra_thread
+      end
+
+      def launch_signal_handler
+        Signal.trap('INT') { sleep 1; Kernel.exit(5) }
+      end
+
+      def launch_sinatra_app
+        @sinatra_thread = Thread.new do
+          require_relative '../web_app'
+        end
       end
 
       def command(name)
@@ -49,6 +68,12 @@ module Turnstile
         stderr.puts title.bold.yellow
         stderr.puts "\t" + e.message.red
         stderr.puts
+      end
+
+      private
+
+      def controller
+        @controller ||= Turnstile::Collector::Controller.new(options)
       end
 
     end

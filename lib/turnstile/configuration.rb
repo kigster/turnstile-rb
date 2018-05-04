@@ -13,6 +13,7 @@ module Turnstile
     property :timeout, default: 0.05, required: true, transform_with: ->(value) { value.to_f }
     property :namespace, default: '', required: false
     property :pool_size, default: 5, required: true
+    property :use_hiredis, default: false
 
     def configure
       yield self if block_given?
@@ -26,6 +27,8 @@ module Turnstile
     property :sampling_rate, default: 100, required: true, transform_with: ->(value) { value.to_i }
     property :redis, default: ::Turnstile::RedisConfig.new
     property :custom_matcher
+    property :trace
+    property :port, default: ::Turnstile::DEFAULT_PORT
 
     def configure
       yield self if block_given?

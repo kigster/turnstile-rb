@@ -93,7 +93,7 @@ module Turnstile
           end
           it 'should extract the token from file' do
             File.open(file).each do |line|
-              expect(matcher.token_from(line)).to_not be_nil
+              expect(matcher.tokenize(line)).to_not be_nil
             end
           end
         end
@@ -116,7 +116,7 @@ module Turnstile
 
       context 'custom format' do
         before do
-          Configuration.from_file(Dir.pwd + '/example/config.rb')
+          Configuration.from_file(Dir.pwd + '/example/custom_csv_matcher.rb')
           expect(Turnstile.config.custom_matcher).to_not be_nil
         end
 
@@ -145,7 +145,7 @@ module Turnstile
 
           it 'should extract the token from file' do
             File.open(file).each do |line|
-              expect(matcher.token_from(line)).to_not be_nil
+              expect(matcher.tokenize(line)).to_not be_nil
             end
           end
         end

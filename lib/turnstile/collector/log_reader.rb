@@ -41,7 +41,7 @@ module Turnstile
 
       def read(&_block)
         file.tail do |line|
-          token = matcher.token_from(line) if matcher
+          token = matcher.tokenize(line) if matcher
           yield(token) if block_given? && token
           break if stopping?
           reopen if should_reopen?

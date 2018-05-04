@@ -1,6 +1,6 @@
 require_relative 'session'
 require_relative '../logger/helper'
-
+require 'thread'
 module Turnstile
   module Collector
     class Actor
@@ -36,7 +36,6 @@ module Turnstile
 
       def shutdown
         self.stopping = true
-        thread.shutdown
       end
 
       def stopping?

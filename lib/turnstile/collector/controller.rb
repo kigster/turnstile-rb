@@ -3,7 +3,6 @@ require 'thread'
 require 'hashie/extensions/symbolize_keys'
 require 'daemons/daemonize'
 require 'colored2'
-require 'attr_memoized'
 
 require_relative 'flusher'
 require_relative 'actor'
@@ -11,13 +10,7 @@ require_relative 'actor'
 module Turnstile
   module Collector
     class Controller
-      include AttrMemoized
-
-      attr_memoized :tracker, -> { Turnstile::Tracker.new }
-      attr_memoized :queue, -> { Queue.new }
-      attr_memoized :file, -> { options.file }
-
-      attr_accessor :options, :actors
+      attr_accessor :options, :actors, :threads
 
       def initialize(*args)
         self.options = args.last.is_a?(Hash) ? args.pop : {}
@@ -26,23 +19,39 @@ module Turnstile
 
         wait_for_file(file)
 
-        self.actors = [ self.reader, self.flusher ]
+        self.actors = [self.reader, self.flusher]
 
         Daemonize.daemonize if options[:daemonize]
         STDOUT.sync = true if options[:verbose]
       end
 
       def start
-        threads = actors.map(&:start)
+        self.threads = actors.map(&:start)
         threads.map(&:join)
+      end
+
+      def stop
+        actors.each(&:shutdown)
       end
 
       def flusher
         @flusher ||= Flusher.new(**flusher_arguments)
       end
 
+      def tracker
+        @tracker ||= Turnstile::Tracker.new
+      end
+
+      def queue
+        @queue ||= Queue.new
+      end
+
+      def file
+        options.file
+      end
+
       def reader
-        opts = reader_arguments
+        opts    = reader_arguments
         matcher = opts.delete(:matcher).to_sym
         @reader ||= if log_reader_class.respond_to?(matcher)
                       log_reader_class.send(matcher, file, queue, **opts)
@@ -78,13 +87,13 @@ module Turnstile
       def wait_for_file(file)
         sleep_period = 1
         while !::File.exist?(file)
-          STDERR.puts "File #{file.bold.yellow} does not exist, waiting for it to appear..."
-          STDERR.puts 'Press Ctrl-C to abort.' if sleep_period == 1
+          terr "File #{file.bold.yellow} does not exist, waiting for it to appear..."
+          terr 'Press Ctrl-C to abort.' if sleep_period == 1
 
           sleep sleep_period
           sleep_period *= 1.2
         end
-        STDOUT.puts "Detected file #{file.bold.yellow} now exists, continue..."
+        tdb "Detected file #{file.bold.yellow} now exists, continue..."
       end
 
       def log_reader_class
