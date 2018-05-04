@@ -1,5 +1,5 @@
 module Turnstile
-  VERSION     = '3.0.1'
+  VERSION     = '3.0.2'
   DEFAULT_PORT = 9090
 
   GEM_DESCRIPTION = <<-EOF
