@@ -36,14 +36,13 @@ module Turnstile
     def create_config
       ::Turnstile::Configuration.new
     end
-
   end
 end
 
-Kernel.define_method :tdb do |msg, io = STDOUT|
+Kernel.send(:define_method, :tdb) do |msg, io = STDOUT|
    io.puts ''.green + ' debug '.black.on.green+ ''.green + ' —— ' + msg
 end
 
-Kernel.define_method :terr do |msg, io = STDERR|
+Kernel.send(:define_method, :terr) do |msg, io = STDERR|
    io.puts ''.bold.red + ' error '.bold.white.on.red + ''.red + ' —— ' + msg
 end

@@ -35,8 +35,8 @@ analysis, and can therefore be performed outside web server process.
 ### Usage
 
 ```
-   # Tail the log file as a proper daemon
-   turnstile -f <file> [ --daemon ]  [ options ]
+   # Tail the log file as a proper daemon, and optionally HTTP end point
+   turnstile -f <file> [ --daemon ] [ --web PORT ] [ options ]
 
    # Add a single item and exit
    turnstile -a 'platform:ip:user'   [ options ]
